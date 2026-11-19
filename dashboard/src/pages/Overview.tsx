@@ -36,18 +36,22 @@ export default function Overview() {
         <StatCard label="Active" value={o.totals.active} icon={<Activity className="h-5 w-5" />} tone="amber" hint="Accepted or in progress" />
         <StatCard label="Resolved" value={o.totals.resolved} icon={<CheckCircle2 className="h-5 w-5" />} tone="green" />
         <StatCard
-          label="Communication"
+          label="Online communication (API)"
           value={<span className="text-lg">{comm.api.online ? 'API online' : 'API offline'}</span>}
           icon={<Wifi className="h-5 w-5" />}
           tone="blue"
           hint={`Database ${comm.api.database}`}
         />
         <StatCard
-          label="Connected nodes"
+          label="Simulated mesh nodes online"
           value={`${comm.nodes.online}/${comm.nodes.total}`}
           icon={<Radio className="h-5 w-5" />}
           tone="violet"
-          hint={<SimulatedTag />}
+          hint={
+            <span className="inline-flex items-center gap-1.5">
+              <SimulatedTag /> no physical LoRa nodes connected
+            </span>
+          }
         />
         <StatCard label="Avg. response" value={o.avgResponseMinutes === null ? '—' : `${o.avgResponseMinutes} min`} icon={<Timer className="h-5 w-5" />} tone="slate" hint="Report → accepted" />
         <StatCard label="Critical open" value={o.totals.criticalOpen} icon={<AlertOctagon className="h-5 w-5" />} tone="red" hint="Highest priority, unresolved" />

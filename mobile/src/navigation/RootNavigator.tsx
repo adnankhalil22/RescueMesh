@@ -32,6 +32,9 @@ const headerStyle = {
   headerTitleStyle: { fontWeight: '700' as const },
 };
 
+// Stack screens: plain back arrow (no previous-route name such as "VictimTabs" next to it).
+const stackOptions = { ...headerStyle, headerBackButtonDisplayMode: 'minimal' as const };
+
 const tabIcon =
   (name: IconName) =>
   ({ color, size }: { color: string; size: number }) => <Ionicons name={name} size={size} color={color} />;
@@ -74,7 +77,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator screenOptions={headerStyle}>
+      <Stack.Navigator screenOptions={stackOptions}>
         {!user ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
@@ -82,13 +85,13 @@ export default function RootNavigator() {
           </>
         ) : user.role === 'VICTIM' ? (
           <>
-            <Stack.Screen name="VictimTabs" component={VictimTabs} options={{ headerShown: false }} />
+            <Stack.Screen name="VictimTabs" component={VictimTabs} options={{ headerShown: false, title: 'Home' }} />
             <Stack.Screen name="Sos" component={SosScreen} options={{ title: 'Emergency SOS', headerStyle: { backgroundColor: colors.red } }} />
             <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} options={{ title: 'Request status' }} />
           </>
         ) : (
           <>
-            <Stack.Screen name="ResponderTabs" component={ResponderTabs} options={{ headerShown: false }} />
+            <Stack.Screen name="ResponderTabs" component={ResponderTabs} options={{ headerShown: false, title: 'Emergencies' }} />
             <Stack.Screen name="ResponderDetail" component={ResponderDetailScreen} options={{ title: 'Emergency details' }} />
           </>
         )}

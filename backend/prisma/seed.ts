@@ -4,16 +4,22 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { DEFAULT_SETTINGS } from '../src/services/settingsService';
+import { simulateFlood, type SimNode } from '../src/mesh/simulator';
+import type { MeshPacket } from '../src/mesh/packet';
 
 const prisma = new PrismaClient();
 
+// All demo people are FICTIONAL. Phone numbers are fictional Lebanese (+961) demo contacts in an
+// obviously fake "000" block — they do not belong to anyone. The administrator has no phone number
+// because it is a system account, not a field contact.
+// Role key VICTIM is displayed as "Citizen" everywhere.
 export const DEMO_USERS = [
-  { email: 'admin@rescuemesh.org', password: 'Admin@12345', name: 'System Administrator', role: 'ADMIN', phone: '+92 300 0000001', organization: 'RescueMesh EOC' },
-  { email: 'responder@rescuemesh.org', password: 'Responder@123', name: 'Ayesha Malik', role: 'RESPONDER', phone: '+92 300 1112233', organization: 'City Rescue Unit — Team A' },
-  { email: 'responder2@rescuemesh.org', password: 'Responder@123', name: 'Bilal Ahmed', role: 'RESPONDER', phone: '+92 300 4445566', organization: 'City Rescue Unit — Medical' },
-  { email: 'victim@rescuemesh.org', password: 'Victim@1234', name: 'Ali Raza', role: 'VICTIM', phone: '+92 321 7778899', bloodGroup: 'B+', emergencyContact: 'Sara Raza +92 321 1234567' },
-  { email: 'fatima@example.com', password: 'Victim@1234', name: 'Fatima Noor', role: 'VICTIM', phone: '+92 333 2223344', bloodGroup: 'O+' },
-  { email: 'usman@example.com', password: 'Victim@1234', name: 'Usman Tariq', role: 'VICTIM', phone: '+92 345 5556677', bloodGroup: 'A-' },
+  { email: 'admin@rescuemesh.org', password: 'Admin@12345', name: 'System Administrator', role: 'ADMIN', phone: null, organization: 'RescueMesh EOC' },
+  { email: 'responder@rescuemesh.org', password: 'Responder@123', name: 'Ayesha Malik', role: 'RESPONDER', phone: '+961 70 000 101', organization: 'City Rescue Unit — Team A' },
+  { email: 'responder2@rescuemesh.org', password: 'Responder@123', name: 'Bilal Ahmed', role: 'RESPONDER', phone: '+961 70 000 102', organization: 'City Rescue Unit — Medical' },
+  { email: 'victim@rescuemesh.org', password: 'Victim@1234', name: 'Ali Raza', role: 'VICTIM', phone: '+961 71 000 201', bloodGroup: 'B+', emergencyContact: 'Sara Raza (demo contact) +961 71 000 299' },
+  { email: 'fatima@example.com', password: 'Victim@1234', name: 'Fatima Noor', role: 'VICTIM', phone: '+961 71 000 202', bloodGroup: 'O+' },
+  { email: 'usman@example.com', password: 'Victim@1234', name: 'Usman Tariq', role: 'VICTIM', phone: '+961 71 000 203', bloodGroup: 'A-' },
 ] as const;
 
 // Simulated ESP32 + LoRa nodes. RL-05 starts OFFLINE so EP-03 is cut off:
@@ -79,6 +85,8 @@ async function main() {
   for (const n of NODES) {
     await prisma.commNode.create({ data: { online: true, simulated: true, batteryLevel: 60 + Math.round(rand() * 40), ...n } });
   }
+  const simNodes: SimNode[] = NODES.map((n) => ({ ...n, kind: n.kind as SimNode['kind'], online: n.online ?? true }));
+  const counters = new Map<string, { sent: number; received: number; dropped: number }>();
 
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
     await prisma.setting.create({ data: { key, value: JSON.stringify(value) } });
@@ -127,6 +135,29 @@ async function main() {
       },
     });
 
+    // Seeded mesh deliveries are produced by the same simulator, so the node packet
+    // counters on the dashboard agree with the history (all simulated, no radio).
+    let meshPath = ['EP-01', 'RL-03', 'RL-02', 'RL-01', 'GW-01'];
+    let meshHops = 4;
+    if (channel === 'LORA_SIM') {
+      const sim = simulateFlood(
+        simNodes,
+        'EP-01',
+        {
+          messageId: `seed-msg-${i}-${id.slice(0, 8)}`, sourceNodeId: 'EP-01', destinationNodeId: 'SERVER', type: 'SOS',
+          latitude: null, longitude: null, timestamp: createdAt.getTime(), priority: s.priority as MeshPacket['priority'],
+          hopCount: 0, maxHops: DEFAULT_SETTINGS.maxHops, payload: {},
+        },
+        new Map(),
+      );
+      meshPath = sim.path ?? meshPath;
+      meshHops = sim.hopCount ?? meshHops;
+      for (const [nodeId, c] of Object.entries(sim.counters)) {
+        const t = counters.get(nodeId) ?? { sent: 0, received: 0, dropped: 0 };
+        counters.set(nodeId, { sent: t.sent + c.sent, received: t.received + c.received, dropped: t.dropped + c.dropped });
+      }
+    }
+
     await prisma.message.create({
       data: {
         id: `seed-msg-${i}-${id.slice(0, 8)}`,
@@ -134,14 +165,18 @@ async function main() {
         sourceNodeId: channel === 'LORA_SIM' ? 'EP-01' : `device-${reporter?.id.slice(0, 8)}`,
         destinationNodeId: 'SERVER',
         priority: s.priority,
-        hopCount: channel === 'LORA_SIM' ? 3 : 0,
-        path: JSON.stringify(channel === 'LORA_SIM' ? ['EP-01', 'RL-03', 'RL-02', 'RL-01', 'GW-01'] : []),
+        hopCount: channel === 'LORA_SIM' ? meshHops : 0,
+        path: JSON.stringify(channel === 'LORA_SIM' ? meshPath : []),
         payload: JSON.stringify({ requestId: id, category: s.type }),
         transport: channel === 'LORA_SIM' ? 'LORA_SIM' : 'HTTP',
         createdAt,
         senderId: reporter?.id ?? null,
       },
     });
+  }
+
+  for (const [nodeId, c] of counters) {
+    await prisma.commNode.update({ where: { id: nodeId }, data: { packetsSent: c.sent, packetsReceived: c.received, packetsDropped: c.dropped } });
   }
 
   console.log(`Seeded ${DEMO_USERS.length} users, ${NODES.length} simulated nodes, ${SCENARIOS.length} emergency requests.`);

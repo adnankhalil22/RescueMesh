@@ -149,7 +149,7 @@ export default function Emergencies() {
                       <StatusBadge status={e.status} />
                     </td>
                     <td className="td">{e.reporterName}</td>
-                    <td className="td text-slate-600">{e.responder?.name ?? <span className="text-slate-400">Unassigned</span>}</td>
+                    <td className="td text-slate-600">{e.responder?.name ?? <span className="text-slate-400">Not assigned</span>}</td>
                     <td className="td text-xs text-slate-500">{CHANNEL_LABEL[e.channel]}</td>
                     <td className="td text-slate-600" title={fmtDateTime(e.createdAt)}>
                       {timeAgo(e.createdAt)}

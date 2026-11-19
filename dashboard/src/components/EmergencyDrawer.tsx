@@ -123,7 +123,7 @@ export default function EmergencyDrawer({ id, onClose, onChanged }: { id: string
                 <Field label="GPS accuracy" value={item.accuracy ? `± ${Math.round(item.accuracy)} m` : '—'} />
                 <Field label="Created on device" value={`${fmtDateTime(item.createdAt)} (${timeAgo(item.createdAt)})`} />
                 <Field label="Received by server" value={fmtDateTime(item.receivedAt)} />
-                <Field label="Assigned responder" value={item.responder?.name ?? 'Unassigned'} />
+                <Field label="Assigned responder" value={item.responder?.name ?? 'Not assigned'} />
                 <Field
                   label="Location"
                   value={
@@ -169,7 +169,7 @@ export default function EmergencyDrawer({ id, onClose, onChanged }: { id: string
                         disabled={!!busy}
                         onChange={(e) => assign(e.target.value || null)}
                       >
-                        <option value="">— Unassigned —</option>
+                        <option value="">— Not assigned —</option>
                         {responders.map((r) => (
                           <option key={r.id} value={r.id}>
                             {r.name} ({r.organization ?? r.role.toLowerCase()})

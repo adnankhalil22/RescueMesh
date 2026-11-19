@@ -67,7 +67,7 @@ export async function changeStatus(user: AuthUser, id: string, status: Emergency
   if (user.role === 'VICTIM') {
     if (current.reporterId !== user.id) throw new ApiError(403, 'You can only update your own requests');
     if (status !== 'CANCELLED' || !['PENDING', 'ACCEPTED'].includes(current.status)) {
-      throw new ApiError(403, 'Victims can only cancel a request that is not yet in progress');
+      throw new ApiError(403, 'Citizens can only cancel a request that is not yet in progress');
     }
   } else {
     const allowed = STATUS_TRANSITIONS[current.status as EmergencyStatus] ?? [];

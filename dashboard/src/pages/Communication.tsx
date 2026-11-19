@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Copy, Database, Inbox, Loader2, Power, Radio, Send, ShieldOff, Wifi } from 'lucide-react';
 import { api, describeError } from '../api/client';
 import { usePolling } from '../hooks/usePolling';
-import type { CommNode, CommStatus, MessageRecord, SimulationResponse, TraceEvent, TransmissionRecord } from '../types';
+import type { CommChannel, CommNode, CommStatus, MessageRecord, SimulationResponse, TraceEvent, TransmissionRecord } from '../types';
 import { PRIORITY_LABEL, TYPE_LABEL, fmtDateTime, timeAgo } from '../lib/format';
 import { ErrorBanner, LastUpdated, PageHeader, SimulatedTag, Spinner, StatCard, EmptyState } from '../components/ui';
 import EmergencyMap from '../components/EmergencyMap';
+
+const NATURE_LABEL: Record<CommChannel['nature'], string> = { LIVE: 'Live', SIMULATED: 'Simulated', NOT_CONNECTED: 'Not connected' };
+const NATURE_STYLE: Record<CommChannel['nature'], string> = {
+  LIVE: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  SIMULATED: 'bg-violet-100 text-violet-700 ring-violet-600/20',
+  NOT_CONNECTED: 'bg-slate-100 text-slate-500 ring-slate-500/20',
+};
 
 const EVENT_STYLE: Record<TraceEvent['type'], string> = {
   ORIGIN: 'bg-slate-800 text-white',
@@ -90,23 +97,72 @@ export default function Communication() {
         </div>
       </div>
 
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Online channel (REST API)</h2>
+      <div className="card mb-5 overflow-hidden">
+        <div className="card-header">
+          <span className="card-title">Communication channels</span>
+          <span className="text-xs text-slate-500">How SOS requests reached the server</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="th">Channel</th>
+                <th className="th">Nature</th>
+                <th className="th">SOS requests</th>
+                <th className="th">What it means</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {s.channels.map((c) => (
+                <tr key={c.id}>
+                  <td className="td font-medium text-slate-800">{c.label}</td>
+                  <td className="td">
+                    <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset ${NATURE_STYLE[c.nature]}`}>
+                      {NATURE_LABEL[c.nature]}
+                    </span>
+                  </td>
+                  <td className="td tabular-nums">{c.sosRequests === null ? <span className="text-slate-400">— not connected</span> : c.sosRequests}</td>
+                  <td className="whitespace-normal px-4 py-3 text-xs text-slate-500">{c.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Server (REST API) — live</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="API status" value={<span className="text-lg">{s.api.online ? 'Online' : 'Offline'}</span>} icon={<Wifi className="h-5 w-5" />} tone="green" hint={`DB ${s.api.database}`} />
-        <StatCard label="Messages received" value={s.messages.receivedTotal} icon={<ArrowDownToLine className="h-5 w-5" />} tone="blue" hint={`${s.messages.receivedHttp} via HTTP sync · ${s.messages.receivedLora} via gateway`} />
-        <StatCard label="Duplicates blocked" value={s.messages.duplicatesBlocked} icon={<Copy className="h-5 w-5" />} tone="amber" hint={`${s.messages.rejected} rejected as invalid`} />
+        <StatCard
+          label="Messages stored by server"
+          value={s.messages.receivedTotal}
+          icon={<ArrowDownToLine className="h-5 w-5" />}
+          tone="blue"
+          hint={`${s.messages.receivedHttp} over HTTP (online + offline sync) · ${s.messages.receivedLora} from the simulated gateway · physical LoRa: not connected`}
+        />
+        <StatCard label="Duplicates blocked" value={s.messages.duplicatesBlocked} icon={<Copy className="h-5 w-5" />} tone="amber" hint={`Re-sent message IDs ignored · ${s.messages.rejected} rejected as invalid`} />
         <StatCard label="Pending requests" value={s.pendingRequests} icon={<Inbox className="h-5 w-5" />} tone="red" hint="SOS awaiting a responder" />
       </div>
 
       <h2 className="mb-2 mt-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-        LoRa mesh <SimulatedTag />
+        LoRa mesh simulator <SimulatedTag /> — no radio hardware
       </h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Nodes online" value={`${s.nodes.online}/${s.nodes.total}`} icon={<Radio className="h-5 w-5" />} tone="violet" hint={`${s.nodes.gatewaysOnline} gateway(s) online`} />
-        <StatCard label="Packets sent" value={s.lora.packetsSent} icon={<ArrowUpFromLine className="h-5 w-5" />} tone="slate" hint="Radio broadcasts by all nodes" />
-        <StatCard label="Packets received" value={s.lora.packetsReceived} icon={<ArrowDownToLine className="h-5 w-5" />} tone="slate" hint={`${s.lora.packetsDropped} dropped (duplicate / hop limit)`} />
-        <StatCard label="Pending packets" value={s.lora.pendingPackets} icon={<Database className="h-5 w-5" />} tone={s.lora.pendingPackets ? 'red' : 'slate'} hint="Held for store-and-forward" />
+        <StatCard
+          label="Simulated nodes online"
+          value={`${s.nodes.online}/${s.nodes.total}`}
+          icon={<Radio className="h-5 w-5" />}
+          tone="violet"
+          hint={`${s.nodes.gatewaysOnline} simulated gateway(s) online · physical nodes: 0`}
+        />
+        <StatCard label="Simulated broadcasts" value={s.lora.packetsSent} icon={<ArrowUpFromLine className="h-5 w-5" />} tone="slate" hint="Computed by the simulator, not transmitted by any radio" />
+        <StatCard label="Simulated receptions" value={s.lora.packetsReceived} icon={<ArrowDownToLine className="h-5 w-5" />} tone="slate" hint={`First-time receptions · ${s.lora.packetsDropped} dropped (duplicate / hop limit)`} />
+        <StatCard label="Held packets" value={s.lora.pendingPackets} icon={<Database className="h-5 w-5" />} tone={s.lora.pendingPackets ? 'red' : 'slate'} hint="No route yet; retried when a node changes (store-and-forward)" />
       </div>
+      <p className="mt-2 text-xs text-slate-500">
+        Counters only change during simulated transmissions. A node broadcasts or receives only while it is <b>online</b> and has an online
+        neighbour within range; powering a node off stops its counters and can cut the route to the gateway.
+      </p>
 
       {actionError && <div className="mt-4"><ErrorBanner message={actionError} /></div>}
       {notice && (
@@ -175,7 +231,9 @@ export default function Communication() {
       <div className="card mt-5">
         <div className="card-header">
           <span className="card-title">Simulated nodes</span>
-          <span className="text-xs text-slate-500">Power a relay off to partition the mesh; held packets are retried automatically when it returns.</span>
+          <span className="text-xs text-slate-500">
+            Counters are simulated. Power a relay off to partition the mesh; held packets are retried automatically when it returns.
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
@@ -261,7 +319,7 @@ export default function Communication() {
               {messages.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center gap-2 px-5 py-2.5 text-sm">
                   <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${m.transport === 'HTTP' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'}`}>
-                    {m.transport === 'HTTP' ? 'HTTP' : 'LoRa (sim)'}
+                    {m.transport === 'HTTP' ? 'HTTP' : 'Simulated LoRa'}
                   </span>
                   <span className="font-medium">{m.type}</span>
                   <span className="text-xs text-slate-500">{PRIORITY_LABEL[m.priority]}</span>
@@ -284,7 +342,7 @@ function TraceView({ r }: { r: SimulationResponse }) {
     <div className="space-y-3 rounded-lg border border-slate-200 p-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {r.delivered ? (
-          <span className="rounded bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">Delivered to gateway</span>
+          <span className="rounded bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">Delivered to simulated gateway</span>
         ) : r.queued ? (
           <span className="inline-flex items-center gap-1 rounded bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
             <AlertTriangle className="h-3 w-3" /> No route — held for retry

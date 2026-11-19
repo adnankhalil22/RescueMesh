@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import { api, describeError, isNetworkError } from '../../services/api';
@@ -24,6 +25,7 @@ export default function IncomingScreen({ navigation }: ResponderTabScreen<'Incom
   const [filter, setFilter] = useState<Filter>('active');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const insets = useSafeAreaInsets(); // no header on this screen: clear the status bar / notch
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -68,7 +70,7 @@ export default function IncomingScreen({ navigation }: ResponderTabScreen<'Incom
 
   return (
     <Screen edges={[]} onRefresh={load} refreshing={refreshing}>
-      <View style={st.hero}>
+      <View style={[st.hero, { paddingTop: insets.top + 16 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <Text style={st.heroTitle}>Incoming emergencies</Text>

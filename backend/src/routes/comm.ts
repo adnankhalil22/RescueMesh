@@ -16,7 +16,7 @@ commRouter.use(requireAuth, requireRole('RESPONDER', 'ADMIN'));
 commRouter.get(
   '/status',
   asyncHandler(async (_req, res) => {
-    const [nodes, totalMessages, httpMessages, loraMessages, duplicates, rejected, pendingPackets, pendingRequests] = await Promise.all([
+    const [nodes, totalMessages, httpMessages, loraMessages, duplicates, rejected, pendingPackets, pendingRequests, sosByChannel] = await Promise.all([
       prisma.commNode.findMany(),
       prisma.message.count(),
       prisma.message.count({ where: { transport: 'HTTP' } }),
@@ -25,26 +25,70 @@ commRouter.get(
       prisma.syncEvent.count({ where: { result: 'REJECTED' } }),
       prisma.pendingPacket.count(),
       prisma.emergencyRequest.count({ where: { status: 'PENDING', archived: false } }),
+      prisma.emergencyRequest.groupBy({ by: ['channel'], _count: true, where: { archived: false } }),
     ]);
     const sum = (k: 'packetsSent' | 'packetsReceived' | 'packetsDropped') => nodes.reduce((a, n) => a + n[k], 0);
+    const sos = (channel: string) => sosByChannel.find((c) => c.channel === channel)?._count ?? 0;
+    const transport = meshTransport.status();
+
+    // One row per communication channel, each with an explicit nature so nothing simulated
+    // can be mistaken for real radio traffic.
+    const channels = [
+      {
+        id: 'HTTP_API',
+        label: 'HTTP / REST API (online)',
+        nature: 'LIVE',
+        sosRequests: sos('ONLINE'),
+        description: 'Phones and the dashboard talking to this server over the network.',
+      },
+      {
+        id: 'OFFLINE_SYNC',
+        label: 'Offline synchronisation',
+        nature: 'LIVE',
+        sosRequests: sos('OFFLINE_SYNC'),
+        description: 'SOS stored on a phone without connectivity, uploaded over HTTP when the connection returned.',
+      },
+      {
+        id: 'LORA_SIMULATED',
+        label: 'LoRa mesh — software simulation',
+        nature: 'SIMULATED',
+        sosRequests: sos('LORA_SIM'),
+        description: 'Packets routed by the simulator and handed to the server by the simulated gateway. No radio is used.',
+      },
+      {
+        id: 'LORA_PHYSICAL',
+        label: 'LoRa mesh — physical ESP32 hardware',
+        nature: 'NOT_CONNECTED',
+        sosRequests: null,
+        description: transport.hardwareConnected ? 'Hardware connected.' : 'No ESP32/LoRa hardware connected. Nothing is received on this channel.',
+      },
+    ];
+
     res.json({
       data: {
         api: { online: true, serverTime: new Date().toISOString(), database: 'connected' },
-        transport: meshTransport.status(),
+        transport,
+        channels,
         nodes: {
           total: nodes.length,
           online: nodes.filter((n) => n.online).length,
           gatewaysOnline: nodes.filter((n) => n.online && n.kind === 'GATEWAY').length,
           simulated: nodes.every((n) => n.simulated),
         },
+        // Messages stored by the server (one per unique message ID; duplicates are not counted).
         messages: {
           receivedTotal: totalMessages,
-          receivedHttp: httpMessages,
-          receivedLora: loraMessages,
+          receivedHttp: httpMessages, // online + offline-synchronised, both arrive over HTTP
+          receivedLora: loraMessages, // handed over by the SIMULATED gateway
+          receivedLoraPhysical: null, // no hardware: not measured
           duplicatesBlocked: duplicates,
           rejected,
         },
+        // Simulator counters (all simulated). packetsSent = broadcasts by nodes, packetsReceived = first-time
+        // receptions, packetsDropped = duplicates / hop-limit stops. A node only transmits or receives while it is
+        // online AND has an online neighbour in range, so offline nodes' counters never change.
         lora: {
+          simulated: true,
           packetsSent: sum('packetsSent'),
           packetsReceived: sum('packetsReceived'),
           packetsDropped: sum('packetsDropped'),

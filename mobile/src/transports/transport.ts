@@ -19,7 +19,7 @@ export interface MessageTransport extends SyncApi {
 
 export class HttpTransport implements MessageTransport {
   readonly id = 'HTTP' as const;
-  readonly label = 'Internet (RescueMesh API)';
+  readonly label = 'HTTP / REST API';
   constructor(private readonly reachable: () => boolean) {}
   isAvailable() {
     return this.reachable();
@@ -40,7 +40,7 @@ export class HttpTransport implements MessageTransport {
  */
 export class LoRaBridgeTransport implements MessageTransport {
   readonly id = 'LORA_BRIDGE' as const;
-  readonly label = 'ESP32 LoRa bridge';
+  readonly label = 'Physical LoRa (ESP32 bridge)';
   isAvailable() {
     return false;
   }

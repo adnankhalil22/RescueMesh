@@ -18,7 +18,8 @@ Base URL: `http://<host>:4000/api` · JSON in and out · Authentication: `Author
 | 409 | Conflict (duplicate email, invalid status transition) |
 | 500 | Server error |
 
-Roles: `VICTIM` (citizen), `RESPONDER`, `ADMIN`.
+Roles (API key → display name used in the app and dashboard): `VICTIM` → **Citizen**, `RESPONDER` → **Responder**,
+`ADMIN` → **Administrator**. The person who raised a particular SOS is its **reporter**.
 
 ---
 
@@ -30,9 +31,10 @@ Roles: `VICTIM` (citizen), `RESPONDER`, `ADMIN`.
 
 ### `POST /auth/register` (public)
 ```json
-{ "name": "Ali Raza", "email": "ali@example.com", "password": "min8chars", "phone": "+92...", "bloodGroup": "B+", "emergencyContact": "..." }
+{ "name": "Ali Raza", "email": "ali@example.com", "password": "min8chars", "phone": "+961 71 000 201", "bloodGroup": "B+", "emergencyContact": "..." }
 ```
-→ `201 { data: { token, user } }`. Always creates a `VICTIM` account (a `role` field is ignored).
+→ `201 { data: { token, user } }`. Always creates a Citizen account (role key `VICTIM`; a `role` field in the body is ignored).
+(Example values are fictional demo data.)
 
 ### `POST /auth/login` (public)
 `{ "email", "password" }` → `{ data: { token, user } }` · 401 wrong credentials · 403 deactivated.
@@ -131,7 +133,7 @@ Response:
 
 | Endpoint | Description |
 |---|---|
-| `GET /comm/status` | API/DB status, transport info (`simulated: true`, `hardwareConnected: false`), node counts, message counters (received HTTP/LoRa, duplicates blocked, rejected), LoRa packet counters, pending packets |
+| `GET /comm/status` | API/DB status; transport info (`simulated: true`, `hardwareConnected: false`); `channels[]` — one row each for `HTTP_API` and `OFFLINE_SYNC` (nature `LIVE`), `LORA_SIMULATED` (`SIMULATED`) and `LORA_PHYSICAL` (`NOT_CONNECTED`, `sosRequests: null`) with the SOS count per channel; `messages` stored by the server (`receivedHttp` = online + offline sync, `receivedLora` = from the **simulated** gateway, `receivedLoraPhysical: null`), duplicates blocked, rejected; `lora` simulator counters (`simulated: true`; broadcasts, first-time receptions, drops, held packets) |
 | `GET /comm/nodes` | Nodes with counters and `heldPackets`, plus `links` (pairs in radio range) |
 | `PATCH /comm/nodes/:id` | `{ online?, name?, latitude?, longitude?, rangeKm? }` → updated node + `retried` held packets |
 | `POST /comm/simulate` | `{ sourceNodeId, destinationNodeId?="SERVER", type?="SOS", category?, priority?, description?, peopleCount?, messageId? }` → `{ simulated, packet, onAirBytes, maxFrameBytes, delivered, queued, ingest, trace: { events[], path, hopCount, transmissions, duplicatesDropped, holders } }`. Re-send an existing `messageId` to demonstrate duplicate suppression. |

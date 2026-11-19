@@ -69,6 +69,9 @@ test('victim: log in -> SOS with GPS -> appears on server/dashboard API -> respo
   await fireEvent.press(screen.getByRole('button', { name: 'SEND SOS' }));
 
   expect(await screen.findByText('Your SOS has reached the emergency operations center.', {}, LONG)).toBeTruthy();
+  // nobody assigned yet -> explicit "Not assigned", no responder phone shown
+  expect(await screen.findByText('Not assigned', {}, LONG)).toBeTruthy();
+  expect(screen.queryByText('Responder phone')).toBeNull();
 
   const [onServer] = await findOnServer(responderToken, desc);
   expect(onServer).toBeTruthy();
@@ -80,7 +83,10 @@ test('victim: log in -> SOS with GPS -> appears on server/dashboard API -> respo
   await http(`/emergencies/${onServer.id}/status`, { method: 'PATCH', token: responderToken, body: { status: 'RESOLVED' } });
   // the open details screen refreshes every 10 s
   await waitFor(() => expect(screen.getAllByText('Resolved').length).toBeGreaterThan(0), { timeout: 30000 });
+  // the responder shown is exactly the one assigned in the backend, with their (fictional demo) phone
   expect(screen.getAllByText('Ayesha Malik').length).toBeGreaterThan(0);
+  expect(screen.getByText('+961 70 000 101')).toBeTruthy();
+  expect(screen.queryByText('Not assigned')).toBeNull();
 });
 
 test('victim offline: SOS queued in SQLite, survives app restart, syncs automatically when network returns', async () => {

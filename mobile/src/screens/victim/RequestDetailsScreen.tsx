@@ -137,7 +137,8 @@ export default function RequestDetailsScreen({ route }: RootScreen<'RequestDetai
       <SectionTitle>Response</SectionTitle>
       <Card>
         <Row label="Status" value={STATUS_LABEL[status]} icon="pulse" />
-        <Row label="Responder" value={server?.responder?.name ?? item.responderName ?? 'Not assigned yet'} icon="person" />
+        {/* The server is authoritative: when it says nobody is assigned, do not fall back to a stale local name. */}
+        <Row label="Responder" value={(server ? server.responder?.name : item.responderName) ?? 'Not assigned'} icon="person" />
         {server?.responder?.phone && (
           <Row label="Responder phone" value={<Text style={st.link} onPress={() => Linking.openURL(`tel:${server.responder!.phone}`)}>{server.responder.phone}</Text>} icon="call" />
         )}

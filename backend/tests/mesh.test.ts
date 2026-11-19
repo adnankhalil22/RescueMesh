@@ -108,6 +108,14 @@ describe('Simulated LoRa transport via API', () => {
     assert.equal(status.body.data.lora.pendingPackets, 1);
     assert.equal(status.body.data.transport.simulated, true);
     assert.equal(status.body.data.transport.hardwareConnected, false);
+    // channels are explicitly classified; physical LoRa is reported as not connected, not as zero traffic
+    const channels = Object.fromEntries(status.body.data.channels.map((c: { id: string }) => [c.id, c]));
+    assert.equal(channels.LORA_SIMULATED.nature, 'SIMULATED');
+    assert.equal(channels.LORA_PHYSICAL.nature, 'NOT_CONNECTED');
+    assert.equal(channels.LORA_PHYSICAL.sosRequests, null);
+    assert.equal(channels.LORA_SIMULATED.sosRequests, 2, 'two simulated SOS were delivered in the previous test');
+    assert.equal(status.body.data.messages.receivedLoraPhysical, null);
+    assert.equal(status.body.data.lora.simulated, true);
 
     const toggle = await request(app).patch('/api/comm/nodes/RL-X').set(auth()).send({ online: true });
     assert.equal(toggle.status, 200);

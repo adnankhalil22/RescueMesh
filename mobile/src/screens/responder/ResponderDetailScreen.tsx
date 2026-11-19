@@ -80,13 +80,13 @@ export default function ResponderDetailScreen({ route }: RootScreen<'ResponderDe
         {!!item.description && <Text style={st.desc}>{item.description}</Text>}
       </Card>
 
-      <SectionTitle>Victim location</SectionTitle>
+      <SectionTitle>Reporter location</SectionTitle>
       <Card>
         <Text style={st.coords} selectable>
           {item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}
         </Text>
         <Text style={{ color: colors.muted, marginBottom: 12 }}>{item.accuracy ? `GPS accuracy ± ${Math.round(item.accuracy)} m` : 'Accuracy unknown'}</Text>
-        <Button title="Navigate to victim" icon="navigate" onPress={openMaps} />
+        <Button title="Navigate to location" icon="navigate" onPress={openMaps} />
       </Card>
 
       <SectionTitle>Actions</SectionTitle>
@@ -121,7 +121,7 @@ export default function ResponderDetailScreen({ route }: RootScreen<'ResponderDe
         <Row label="Reported" value={new Date(item.createdAt).toLocaleString()} />
         <Row label="Received" value={new Date(item.receivedAt).toLocaleString()} />
         <Row label="Channel" value={CHANNEL[item.channel]} />
-        <Row label="Responder" value={item.responder?.name ?? 'Unassigned'} />
+        <Row label="Responder" value={item.responder?.name ?? 'Not assigned'} />
       </Card>
 
       {item.history && item.history.length > 0 && (

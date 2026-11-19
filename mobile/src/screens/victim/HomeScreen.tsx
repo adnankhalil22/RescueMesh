@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import { listRequests } from '../../storage/database';
@@ -24,6 +25,7 @@ export default function HomeScreen({ navigation }: VictimTabScreen<'Home'>) {
   const { link, counts, syncNow, syncing, revision, lastSync } = useSync();
   const [recent, setRecent] = useState<LocalRequest[]>([]);
   const [gps, setGps] = useState<GpsState>('unknown');
+  const insets = useSafeAreaInsets(); // this screen has no header, so clear the status bar / notch ourselves
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -45,7 +47,7 @@ export default function HomeScreen({ navigation }: VictimTabScreen<'Home'>) {
 
   return (
     <Screen edges={[]} onRefresh={load} refreshing={false}>
-      <View style={st.hero}>
+      <View style={[st.hero, { paddingTop: insets.top + 16 }]}>
         <View style={st.heroTop}>
           <View style={{ flex: 1 }}>
             <Text style={st.hello}>Hello, {user?.name.split(' ')[0]}</Text>

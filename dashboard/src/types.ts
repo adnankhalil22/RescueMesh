@@ -94,12 +94,29 @@ export interface CommNode {
   heldPackets: number;
 }
 
+export interface CommChannel {
+  id: 'HTTP_API' | 'OFFLINE_SYNC' | 'LORA_SIMULATED' | 'LORA_PHYSICAL';
+  label: string;
+  nature: 'LIVE' | 'SIMULATED' | 'NOT_CONNECTED';
+  /** SOS requests that arrived on this channel; null = not measured (no hardware). */
+  sosRequests: number | null;
+  description: string;
+}
+
 export interface CommStatus {
   api: { online: boolean; serverTime: string; database: string };
   transport: { kind: string; simulated: boolean; hardwareConnected: boolean; description: string };
+  channels: CommChannel[];
   nodes: { total: number; online: number; gatewaysOnline: number; simulated: boolean };
-  messages: { receivedTotal: number; receivedHttp: number; receivedLora: number; duplicatesBlocked: number; rejected: number };
-  lora: { packetsSent: number; packetsReceived: number; packetsDropped: number; pendingPackets: number };
+  messages: {
+    receivedTotal: number;
+    receivedHttp: number;
+    receivedLora: number;
+    receivedLoraPhysical: number | null;
+    duplicatesBlocked: number;
+    rejected: number;
+  };
+  lora: { simulated: true; packetsSent: number; packetsReceived: number; packetsDropped: number; pendingPackets: number };
   pendingRequests: number;
 }
 

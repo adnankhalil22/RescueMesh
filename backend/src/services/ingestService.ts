@@ -132,7 +132,7 @@ export async function ingestPacket(input: MeshPacket, opts: IngestOptions): Prom
             latitude: packet.latitude,
             longitude: packet.longitude,
             accuracy: p.accuracy ?? req.accuracy,
-            history: { create: { status: req.status, note: 'Victim shared an updated location', userId: opts.senderId ?? null } },
+            history: { create: { status: req.status, note: 'Reporter shared an updated location', userId: opts.senderId ?? null } },
           },
         });
         requestId = req.id;

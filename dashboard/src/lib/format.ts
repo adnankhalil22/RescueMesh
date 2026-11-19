@@ -46,6 +46,7 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
   LORA_SIM: 'LoRa mesh (simulated)',
 };
 
+/** Same display names as the mobile app (mobile/src/constants.ts). The API key VICTIM is always shown as "Citizen". */
 export const ROLE_LABEL: Record<Role, string> = { VICTIM: 'Citizen', RESPONDER: 'Responder', ADMIN: 'Administrator' };
 
 export const fmtDateTime = (iso: string | null | undefined) =>

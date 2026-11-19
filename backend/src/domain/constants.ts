@@ -1,3 +1,8 @@
+/**
+ * Role keys used by the API. Display names (same in the app and dashboard):
+ * VICTIM → "Citizen", RESPONDER → "Responder", ADMIN → "Administrator".
+ * The person who raised a particular SOS is called its "reporter".
+ */
 export const ROLES = ['VICTIM', 'RESPONDER', 'ADMIN'] as const;
 export type Role = (typeof ROLES)[number];
 

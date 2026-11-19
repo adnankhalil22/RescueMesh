@@ -1,4 +1,11 @@
-import type { DeliveryStatus, EmergencyStatus, EmergencyType, Priority } from './types';
+import type { DeliveryStatus, EmergencyStatus, EmergencyType, Priority, Role } from './types';
+
+/**
+ * Display names for roles — identical in the mobile app and dashboard.
+ * The API keeps the key VICTIM; it is always shown to people as "Citizen".
+ * The person who raised a particular SOS is called its "reporter".
+ */
+export const ROLE_LABEL: Record<Role, string> = { VICTIM: 'Citizen', RESPONDER: 'Responder', ADMIN: 'Administrator' };
 
 export const EMERGENCY_TYPES: { key: EmergencyType; label: string; icon: string; defaultPriority: Priority }[] = [
   { key: 'MEDICAL', label: 'Medical emergency', icon: 'medkit', defaultPriority: 'HIGH' },

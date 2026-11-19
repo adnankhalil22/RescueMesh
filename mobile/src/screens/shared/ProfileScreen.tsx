@@ -7,9 +7,9 @@ import { useSync } from '../../context/SyncContext';
 import { api, describeError } from '../../services/api';
 import { Button, Card, ErrorText, Field, Row, Screen, SectionTitle } from '../../components/ui';
 import { colors } from '../../theme';
+import { ROLE_LABEL } from '../../constants';
 import type { RootStackParams } from '../../navigation/types';
 
-const ROLE_LABEL = { VICTIM: 'Citizen', RESPONDER: 'Responder', ADMIN: 'Administrator' } as const;
 
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();

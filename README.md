@@ -156,10 +156,14 @@ Individually: `npm --prefix backend run dev`, `npm --prefix dashboard run dev`, 
 | Administrator | `admin@rescuemesh.org` | `Admin@12345` | Dashboard |
 | Responder | `responder@rescuemesh.org` | `Responder@123` | Dashboard and mobile (responder view) |
 | Responder | `responder2@rescuemesh.org` | `Responder@123` | Dashboard and mobile |
-| Citizen / victim | `victim@rescuemesh.org` | `Victim@1234` | Mobile (victim view) |
-| Citizen / victim | `fatima@example.com`, `usman@example.com` | `Victim@1234` | Mobile |
+| Citizen | `victim@rescuemesh.org` | `Victim@1234` | Mobile (citizen view) |
+| Citizen | `fatima@example.com`, `usman@example.com` | `Victim@1234` | Mobile |
 
-These are demonstration accounts created by the seed script. Change or remove them before any real deployment.
+These are demonstration accounts created by the seed script. All people are fictional; phone numbers are fictional
+Lebanese (+961) demo contacts in an obviously fake `000` block. Change or remove them before any real deployment.
+
+**Role names.** The app and dashboard use the same labels: **Citizen** (API role key `VICTIM`), **Responder**,
+**Administrator**. The person who raised a particular SOS is its **reporter**.
 
 ## 7. Main features
 
