@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "RescueMesh",
+    "slug": "rescuemesh",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#0b1426",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.rescuemesh.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "RescueMesh sends your GPS position with an SOS so responders can find you."
+      }
+    },
+    "android": {
+      "package": "org.rescuemesh.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#dc2626",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "RescueMesh sends your GPS position with an SOS so responders can find you."
+        }
+      ]
+    ]
+  }
+}

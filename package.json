@@ -1,0 +1,20 @@
+{
+  "name": "rescuemesh",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RescueMesh — Intelligent Disaster Emergency Communication Network (backend, dashboard, mobile)",
+  "scripts": {
+    "install:all": "npm install && npm --prefix backend install && npm --prefix dashboard install && npm --prefix mobile install",
+    "setup": "npm run install:all && npm --prefix backend run setup",
+    "dev": "concurrently -k -n api,dashboard -c red,cyan \"npm --prefix backend run dev\" \"npm --prefix dashboard run dev\"",
+    "mobile": "npm --prefix mobile start",
+    "seed": "npm --prefix backend run db:seed",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix dashboard run typecheck && npm --prefix mobile run typecheck",
+    "test": "npm --prefix backend test && npm --prefix mobile test",
+    "test:integration": "npm --prefix mobile run test:integration",
+    "build": "npm --prefix backend run build && npm --prefix dashboard run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,154 @@
+// RescueMesh data model.
+// SQLite for local development. Enumerated values are stored as strings and
+// validated in the API layer (src/domain/constants.ts), so switching the
+// provider to "postgresql" needs no schema rewrite.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  phone            String?
+  passwordHash     String
+  role             String   @default("VICTIM") // VICTIM | RESPONDER | ADMIN
+  isActive         Boolean  @default(true)
+  bloodGroup       String?
+  emergencyContact String?
+  organization     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lastLoginAt      DateTime?
+
+  reportedRequests EmergencyRequest[] @relation("Reporter")
+  assignedRequests EmergencyRequest[] @relation("Responder")
+  statusUpdates    StatusUpdate[]
+  messages         Message[]
+}
+
+model EmergencyRequest {
+  id          String    @id // client-generated unique request ID (idempotent sync)
+  type        String    // MEDICAL | TRAPPED | FIRE | BUILDING_COLLAPSE | MISSING_PERSON | OTHER
+  priority    String    // LOW | MEDIUM | HIGH | CRITICAL
+  status      String    @default("PENDING") // PENDING | ACCEPTED | IN_PROGRESS | RESOLVED | CANCELLED
+  description String    @default("")
+  latitude    Float
+  longitude   Float
+  accuracy    Float?
+  peopleCount Int       @default(1)
+  channel     String    @default("ONLINE") // ONLINE | OFFLINE_SYNC | LORA_SIM
+  archived    Boolean   @default(false)
+  createdAt   DateTime  // time the SOS was created on the device
+  receivedAt  DateTime  @default(now()) // time the server received it
+  updatedAt   DateTime  @updatedAt
+  acceptedAt  DateTime?
+  resolvedAt  DateTime?
+
+  reporterId   String?
+  reporter     User?   @relation("Reporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reporterName String? // kept for requests arriving via mesh without an account
+  responderId  String?
+  responder    User?   @relation("Responder", fields: [responderId], references: [id], onDelete: SetNull)
+
+  history StatusUpdate[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model StatusUpdate {
+  id        String           @id @default(uuid())
+  requestId String
+  request   EmergencyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status    String
+  note      String?
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime         @default(now())
+
+  @@index([requestId])
+}
+
+// Every message that reached the server, whether by HTTP sync or via the
+// (simulated) LoRa gateway. The id is the client-generated message ID, so a
+// retried or re-forwarded message can never be stored twice.
+model Message {
+  id                String   @id
+  type              String   // SOS | LOCATION | STATUS | ACK | CHAT
+  sourceNodeId      String
+  destinationNodeId String
+  latitude          Float?
+  longitude         Float?
+  priority          String
+  hopCount          Int      @default(0)
+  path              String   @default("[]") // JSON array of node ids
+  payload           String   @default("{}") // JSON
+  transport         String   // HTTP | LORA_SIM
+  deliveryStatus    String   @default("DELIVERED") // PENDING | QUEUED | SENT | DELIVERED | FAILED
+  createdAt         DateTime // message timestamp from the originating device
+  receivedAt        DateTime @default(now())
+  senderId          String?
+  sender            User?    @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([transport])
+  @@index([receivedAt])
+}
+
+// Audit trail of synchronisation attempts (used for duplicate statistics).
+model SyncEvent {
+  id        String   @id @default(uuid())
+  messageId String
+  result    String   // ACCEPTED | DUPLICATE | REJECTED
+  transport String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([result])
+}
+
+// Communication nodes. All nodes are SIMULATED until real ESP32 hardware is
+// attached; the `simulated` flag is shown in the dashboard.
+model CommNode {
+  id               String   @id
+  name             String
+  kind             String   // GATEWAY | RELAY | ENDPOINT
+  latitude         Float
+  longitude        Float
+  rangeKm          Float    @default(2.5)
+  online           Boolean  @default(true)
+  simulated        Boolean  @default(true)
+  batteryLevel     Int      @default(100)
+  packetsSent      Int      @default(0)
+  packetsReceived  Int      @default(0)
+  packetsDropped   Int      @default(0)
+  lastSeen         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Packets the simulated mesh could not deliver yet (no route to gateway).
+// Retried automatically when topology changes (store-and-forward).
+model PendingPacket {
+  id         String   @id // message id
+  packet     String   // JSON MeshPacket
+  heldByNode String
+  attempts   Int      @default(1)
+  status     String   @default("QUEUED")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
