@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
-import { getFix, type Fix } from '../../services/location';
+import { describeFixAge, getFix, LocationError, type Fix } from '../../services/location';
 import { createSos } from '../../services/sos';
 import { EMERGENCY_TYPES, PRIORITIES, PRIORITY_LABEL } from '../../constants';
 import { Button, Card, ErrorText, OfflineBanner, Screen, SectionTitle, type IconName } from '../../components/ui';
@@ -21,16 +21,19 @@ export default function SosScreen({ navigation }: RootScreen<'Sos'>) {
   const [fix, setFix] = useState<Fix | null>(null);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [needsSettings, setNeedsSettings] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const locate = useCallback(async () => {
     setGpsBusy(true);
     setGpsError(null);
+    setNeedsSettings(false);
     try {
       setFix(await getFix());
     } catch (e) {
       setGpsError(e instanceof Error ? e.message : 'Could not get your location');
+      setNeedsSettings(e instanceof LocationError && (e.reason === 'permission-blocked' || e.reason === 'services-off'));
     } finally {
       setGpsBusy(false);
     }
@@ -74,7 +77,7 @@ export default function SosScreen({ navigation }: RootScreen<'Sos'>) {
           <Text style={st.gpsTitle}>{fix ? 'Location found' : gpsBusy ? 'Finding your location…' : 'Location not available'}</Text>
           <Text style={st.gpsSub}>
             {fix
-              ? `${fix.latitude.toFixed(5)}, ${fix.longitude.toFixed(5)}${fix.accuracy ? ` · ±${Math.round(fix.accuracy)} m` : ''}${fix.source === 'last-known' ? ' · last known' : ''}`
+              ? `${fix.latitude.toFixed(5)}, ${fix.longitude.toFixed(5)}${fix.accuracy ? ` · ±${Math.round(fix.accuracy)} m` : ''} · ${describeFixAge(fix)}`
               : gpsError ?? 'GPS works without internet'}
           </Text>
         </View>
@@ -84,6 +87,14 @@ export default function SosScreen({ navigation }: RootScreen<'Sos'>) {
           </Pressable>
         )}
       </Card>
+      {needsSettings && (
+        <Button title="Open phone settings" icon="settings" variant="ghost" onPress={() => void Linking.openSettings()} style={{ marginBottom: 12 }} />
+      )}
+      {fix?.source === 'stale' && (
+        <Text style={[st.hint, { marginTop: -4, marginBottom: 10, color: colors.amber }]}>
+          Using an older saved position because a live GPS fix is not available. Tap Refresh outdoors for a better fix.
+        </Text>
+      )}
 
       <SectionTitle>1. What is the emergency?</SectionTitle>
       <View style={st.types}>

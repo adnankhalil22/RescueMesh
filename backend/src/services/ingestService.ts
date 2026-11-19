@@ -45,11 +45,20 @@ async function logEvent(messageId: string, result: IngestResult['result'], trans
   await prisma.syncEvent.create({ data: { messageId, result, transport, detail } });
 }
 
-export async function ingestPacket(packet: MeshPacket, opts: IngestOptions): Promise<IngestResult> {
+/** Delivery later than this after creation counts as offline synchronisation. */
+export const OFFLINE_DELAY_MS = 2 * 60_000;
+/** Allowed device-clock drift into the future before the timestamp is replaced by server time. */
+export const MAX_CLOCK_AHEAD_MS = 5 * 60_000;
+
+export async function ingestPacket(input: MeshPacket, opts: IngestOptions): Promise<IngestResult> {
+  // Phones in a disaster may have wrong clocks. Never reject an SOS for that, but do not let a
+  // future timestamp distort ordering and statistics: clamp it to the time of receipt.
+  const packet = input.timestamp > Date.now() + MAX_CLOCK_AHEAD_MS ? { ...input, timestamp: Date.now() } : input;
+
   const existing = await prisma.message.findUnique({ where: { id: packet.messageId } });
   if (existing) {
     await logEvent(packet.messageId, 'DUPLICATE', opts.transport);
-    return duplicateResult(packet);
+    return duplicateResult(packet, opts);
   }
 
   try {
@@ -64,10 +73,17 @@ export async function ingestPacket(packet: MeshPacket, opts: IngestOptions): Pro
         ]);
         const already = await tx.emergencyRequest.findUnique({ where: { id: p.requestId } });
         if (already) {
+          // A phone may legitimately re-send its own SOS under a new message ID, but a
+          // request ID belonging to someone else must not be touched or revealed.
+          if (opts.transport === 'HTTP' && already.reporterId !== (opts.senderId ?? null)) {
+            throw new z.ZodError([{ code: 'custom', path: ['payload', 'requestId'], message: 'Request ID already used by another report' }]);
+          }
           requestId = already.id;
           requestStatus = already.status;
         } else {
-          const channel = opts.transport === 'LORA_SIM' ? 'LORA_SIM' : p.queuedOffline ? 'OFFLINE_SYNC' : 'ONLINE';
+          // Late delivery means it was effectively offline, even if the phone thought it was online.
+          const delayed = Date.now() - packet.timestamp > OFFLINE_DELAY_MS;
+          const channel = opts.transport === 'LORA_SIM' ? 'LORA_SIM' : p.queuedOffline || delayed ? 'OFFLINE_SYNC' : 'ONLINE';
           const created = await tx.emergencyRequest.create({
             data: {
               id: p.requestId,
@@ -106,7 +122,8 @@ export async function ingestPacket(packet: MeshPacket, opts: IngestOptions): Pro
         ]);
         const req = await tx.emergencyRequest.findUnique({ where: { id: p.requestId } });
         if (!req) throw new z.ZodError([{ code: 'custom', path: ['payload', 'requestId'], message: 'Unknown emergency request' }]);
-        if (opts.transport === 'HTTP' && req.reporterId && req.reporterId !== opts.senderId) {
+        // Over HTTP only the reporter may move their request (mesh requests have no owner → nobody).
+        if (opts.transport === 'HTTP' && (!req.reporterId || req.reporterId !== opts.senderId)) {
           throw new z.ZodError([{ code: 'custom', path: ['payload', 'requestId'], message: 'Not your emergency request' }]);
         }
         await tx.emergencyRequest.update({
@@ -149,7 +166,7 @@ export async function ingestPacket(packet: MeshPacket, opts: IngestOptions): Pro
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       // Concurrent duplicate (two retries racing): the other one won.
       await logEvent(packet.messageId, 'DUPLICATE', opts.transport, 'race');
-      return duplicateResult(packet);
+      return duplicateResult(packet, opts);
     }
     if (err instanceof z.ZodError) {
       const detail = err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
@@ -160,14 +177,16 @@ export async function ingestPacket(packet: MeshPacket, opts: IngestOptions): Pro
   }
 }
 
-async function duplicateResult(packet: MeshPacket): Promise<IngestResult> {
+async function duplicateResult(packet: MeshPacket, opts: IngestOptions): Promise<IngestResult> {
   const requestId = typeof packet.payload?.requestId === 'string' ? packet.payload.requestId : undefined;
   const req = requestId ? await prisma.emergencyRequest.findUnique({ where: { id: requestId } }) : null;
+  // Only tell the sender about the request if it is theirs.
+  const visible = req && (opts.transport !== 'HTTP' || req.reporterId === (opts.senderId ?? null));
   return {
     messageId: packet.messageId,
     result: 'DUPLICATE',
     deliveryStatus: 'DELIVERED',
-    requestId: req?.id,
-    requestStatus: req?.status,
+    requestId: visible ? req.id : undefined,
+    requestStatus: visible ? req.status : undefined,
   };
 }

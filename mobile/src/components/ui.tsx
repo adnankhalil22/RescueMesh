@@ -80,7 +80,8 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: !!off }}
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!off, busy: !!loading }}
       onPress={onPress}
       disabled={off}
       style={({ pressed }) => [
@@ -101,7 +102,7 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={s.label}>{label}</Text>
-      <TextInput placeholderTextColor="#94a3b8" style={[s.input, props.multiline && { minHeight: 80, textAlignVertical: 'top' }, error && { borderColor: colors.red }]} {...props} />
+      <TextInput accessibilityLabel={label.replace(/\s*\*.*$/, '').replace(/\s*\(.*\)$/, '')} placeholderTextColor="#94a3b8" style={[s.input, props.multiline && { minHeight: 80, textAlignVertical: 'top' }, error && { borderColor: colors.red }]} {...props} />
       {error ? <Text style={s.fieldError}>{error}</Text> : null}
     </View>
   );

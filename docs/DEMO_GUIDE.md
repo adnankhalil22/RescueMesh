@@ -57,8 +57,8 @@ Dashboard → **Communication**:
 5. Node table → RL-05 **Power on** → message *"Store-and-forward retried 1 held packet(s): 1 delivered"*.
 6. Power off **RL-01** and transmit from EP-01 → no route to the gateway (mesh partition); power it on again → delivered.
 7. Settings → *LoRa max hops* = 3 → transmit from EP-01 → `HOP_LIMIT` at RL-01 (the gateway is 4 hops away), so the
-   packet is not delivered and is kept as pending. Set max hops back to 6 afterwards. (That held packet keeps its
-   original limit of 3, so re-seed before the next demo to clear it.)
+   packet is not delivered and is kept as pending. Set max hops back to 6: the held packet is retried with the new
+   limit and delivered automatically.
 
 ## 5. Other things worth showing
 

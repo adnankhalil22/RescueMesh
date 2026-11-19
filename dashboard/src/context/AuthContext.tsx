@@ -6,6 +6,8 @@ interface AuthState {
   user: User | null;
   settings: SystemSettings | null;
   loading: boolean;
+  /** Why the user was signed out automatically (expired / deactivated), shown on the login page. */
+  notice: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -18,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const logout = useCallback(() => {
     tokenStore.set(null);
@@ -35,7 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setUnauthorizedHandler(logout);
+    setUnauthorizedHandler((reason) => {
+      setNotice(reason ?? 'Your session has expired. Please sign in again.');
+      logout();
+    });
     if (!tokenStore.get()) {
       setLoading(false);
       return;
@@ -50,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await api<{ token: string; user: User }>('/auth/login', { method: 'POST', body: { email, password } });
       tokenStore.set(res.token);
       await loadSession();
+      setNotice(null);
     },
     [loadSession],
   );
@@ -59,8 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, settings, loading, login, logout, refreshUser, setSettings }),
-    [user, settings, loading, login, logout, refreshUser],
+    () => ({ user, settings, loading, notice, login, logout, refreshUser, setSettings }),
+    [user, settings, loading, notice, login, logout, refreshUser],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

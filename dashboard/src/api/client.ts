@@ -29,8 +29,8 @@ export const tokenStore = {
   },
 };
 
-let onUnauthorized: (() => void) | null = null;
-export const setUnauthorizedHandler = (fn: () => void) => {
+let onUnauthorized: ((reason?: string) => void) | null = null;
+export const setUnauthorizedHandler = (fn: (reason?: string) => void) => {
   onUnauthorized = fn;
 };
 
@@ -54,7 +54,9 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && token) onUnauthorized?.();
+    // Expired token, or an account deactivated by an administrator → back to the sign-in page.
+    const deactivated = res.status === 403 && /deactivated/i.test(json?.error?.message ?? '');
+    if ((res.status === 401 || deactivated) && token) onUnauthorized?.(deactivated ? json.error.message : undefined);
     throw new ApiError(res.status, json?.error?.message ?? `Request failed (${res.status})`, json?.error?.details);
   }
   return json.data as T;

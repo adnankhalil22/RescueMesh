@@ -12,6 +12,7 @@
     "typecheck": "npm --prefix backend run typecheck && npm --prefix dashboard run typecheck && npm --prefix mobile run typecheck",
     "test": "npm --prefix backend test && npm --prefix mobile test",
     "test:integration": "npm --prefix mobile run test:integration",
+    "test:ui": "npm --prefix mobile run test:ui",
     "build": "npm --prefix backend run build && npm --prefix dashboard run build"
   },
   "devDependencies": {

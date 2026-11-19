@@ -83,9 +83,12 @@ export class SimulatedLoRaTransport implements MeshTransport {
   /** Store-and-forward: re-flood held packets from the node holding them. */
   async retryPending(): Promise<TransmitResult[]> {
     const pending = await prisma.pendingPacket.findMany({ orderBy: { createdAt: 'asc' } });
+    const { maxHops } = await getSettings();
     const results: TransmitResult[] = [];
     for (const p of pending) {
-      const packet = meshPacketSchema.parse(JSON.parse(p.packet));
+      // Re-sent with the *current* hop limit, so raising max hops in Settings can release
+      // packets that were previously stopped by a lower limit.
+      const packet = meshPacketSchema.parse({ ...JSON.parse(p.packet), maxHops });
       forget(this.seen, packet.messageId);
       const start = (await prisma.commNode.findUnique({ where: { id: p.heldByNode } }))?.online ? p.heldByNode : packet.sourceNodeId;
       results.push(await this.transmit(packet, start));

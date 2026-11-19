@@ -15,6 +15,14 @@ import { errorHandler } from './utils/http';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  // Basic security headers (the API serves JSON only).
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  });
   app.use(cors({ origin: config.corsOrigin.includes('*') ? true : config.corsOrigin }));
   app.use(express.json({ limit: '256kb' }));
   if (!config.isTest) app.use(morgan('dev'));

@@ -22,7 +22,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -35,7 +38,9 @@
         {
           "locationWhenInUsePermission": "RescueMesh sends your GPS position with an SOS so responders can find you."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-asset"
     ]
   }
 }

@@ -229,11 +229,17 @@ See [docs/LORA_INTEGRATION.md](docs/LORA_INTEGRATION.md). In short:
 ## 11. Testing
 
 ```bash
-npm run typecheck          # backend, dashboard and mobile TypeScript checks
-npm test                   # backend API + mesh tests (23) and mobile sync-engine tests (8)
+npm run typecheck          # backend, dashboard, mobile app and mobile UI-test TypeScript checks
+npm test                   # backend API + mesh + audit tests (30) and mobile sync-engine tests (8)
 npm run build              # backend compile + dashboard production build
-npm run test:integration   # with the backend running: offline → restart → sync → duplicate → responder flow
+# with the backend running (npm run dev):
+npm run test:integration   # offline → restart → sync → duplicate → responder flow against the live API
+npm run test:ui            # mobile UI tests: real screens driven like a user, against the live API (6)
 ```
+
+The mobile UI tests (`mobile/ui-tests/`) render the real app in Jest and replace only device hardware: GPS, network
+on/off, and the native SQLite bridge (the app's real SQL runs on Node's built-in SQLite). They do not replace a check
+on a physical phone. See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the full audit and results.
 
 The backend tests use a separate database (`backend/prisma/test.db`) and never touch the demo data.
 
@@ -242,5 +248,8 @@ batch sync, duplicate prevention (same message ID and same request ID), location
 history, cancel/archive, filtering/sorting/search, user management and deactivation, statistics, settings, multi-hop
 forwarding, duplicate suppression in loops, hop limits, partitions and store-and-forward retry, compact encoding.
 
-Not covered by automated tests (verify manually on a device, see the demo guide): the React Native screens
-themselves, SQLite persistence on a real phone, GPS permission flows, and the dashboard's visual rendering.
+The UI tests also cover login and registration, online and offline SOS, restart persistence, automatic sync,
+responder actions in the app, and blocked GPS permission.
+
+Not covered by automated tests (verify manually, see the demo guide): rendering on a physical phone, native
+permission dialogs, the native SQLite module, Wi-Fi/firewall reachability, and the dashboard's visual layout.

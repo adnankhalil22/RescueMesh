@@ -53,9 +53,19 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
         `);
       }
       return db;
-    })();
+    })().catch((err) => {
+      dbPromise = null; // allow a later retry instead of caching the failure forever
+      throw err;
+    });
   }
   return dbPromise;
+}
+
+/** Closes the connection; the next getDb() re-opens the file. Used by tests to simulate an app restart. */
+export async function closeDb(): Promise<void> {
+  const p = dbPromise;
+  dbPromise = null;
+  if (p) await (await p).closeAsync();
 }
 
 interface OutboxRow {

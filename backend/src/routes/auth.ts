@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { requireAuth, signToken } from '../middleware/auth';
+import { clearLoginFailures, loginLimiter, recordLoginFailure } from '../middleware/loginLimiter';
 import { ApiError, asyncHandler, parse } from '../utils/http';
 import { serializeUser } from './users';
 
@@ -49,12 +50,15 @@ authRouter.post(
 
 authRouter.post(
   '/login',
+  loginLimiter,
   asyncHandler(async (req, res) => {
     const body = parse(loginSchema, req.body);
     const user = await prisma.user.findUnique({ where: { email: body.email } });
     if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
+      recordLoginFailure(req);
       throw new ApiError(401, 'Invalid email or password');
     }
+    clearLoginFailures(req);
     if (!user.isActive) throw new ApiError(403, 'Account is deactivated. Contact an administrator.');
     const updated = await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     res.json({ data: { token: signToken(updated), user: serializeUser(updated) } });

@@ -1,20 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap, Circle, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { CommNode, Emergency } from '../types';
 import { PRIORITY_COLOR, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, fmtCoords, fmtDateTime } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
 
-function FitBounds({ points }: { points: [number, number][] }) {
+/**
+ * Fits the view to the markers once, when they first load, and again whenever
+ * `fitSignal` changes (e.g. a "Fit all" button). Live updates do NOT move the
+ * map, so an operator's zoom/pan is kept while new SOS markers arrive.
+ */
+function FitBounds({ points, fitSignal }: { points: [number, number][]; fitSignal: number }) {
   const map = useMap();
-  const key = points.map((p) => p.join(',')).join('|');
+  const fittedFor = useRef<number | null>(null);
   useEffect(() => {
-    if (points.length === 0) return;
+    if (points.length === 0 || fittedFor.current === fitSignal) return;
+    fittedFor.current = fitSignal;
     if (points.length === 1) map.setView(points[0], 14);
     else map.fitBounds(points, { padding: [40, 40], maxZoom: 15 });
-    // only refit when the set of points changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [points, fitSignal, map]);
   return null;
 }
 
@@ -27,8 +31,10 @@ export default function EmergencyMap({
   onSelect,
   height = 520,
   fit = true,
+  fitSignal = 0,
   showRanges = false,
 }: {
+  fitSignal?: number;
   emergencies: Emergency[];
   nodes?: CommNode[];
   links?: Array<[string, string]>;
@@ -52,7 +58,7 @@ export default function EmergencyMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {fit && <FitBounds points={points} />}
+        {fit && <FitBounds points={points} fitSignal={fitSignal} />}
 
         {showRanges &&
           nodes

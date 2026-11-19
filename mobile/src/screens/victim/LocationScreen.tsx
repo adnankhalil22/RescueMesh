@@ -3,7 +3,7 @@ import { Linking, Platform, Share, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
-import { getFix, type Fix } from '../../services/location';
+import { describeFixAge, getFix, type Fix } from '../../services/location';
 import { queueLocationUpdate } from '../../services/sos';
 import { listRequests } from '../../storage/database';
 import { TYPE_LABEL } from '../../constants';
@@ -35,7 +35,9 @@ export default function LocationScreen() {
   useEffect(() => {
     void locate();
     if (user) {
-      listRequests(user.id).then((rs) => setActive(rs.find((r) => !['RESOLVED', 'CANCELLED'].includes(r.status)) ?? null));
+      listRequests(user.id)
+        .then((rs) => setActive(rs.find((r) => !['RESOLVED', 'CANCELLED'].includes(r.status)) ?? null))
+        .catch(() => setActive(null));
     }
   }, [locate, user]);
 
@@ -79,7 +81,7 @@ export default function LocationScreen() {
         <Card>
           <Row label="Accuracy" value={fix.accuracy ? `± ${Math.round(fix.accuracy)} m` : 'Unknown'} icon="locate" />
           <Row label="Fix time" value={new Date(fix.timestamp).toLocaleTimeString()} icon="time" />
-          <Row label="Source" value={fix.source === 'gps' ? 'Live GPS' : 'Last known position'} icon="compass" />
+          <Row label="Source" value={describeFixAge(fix)} icon="compass" />
         </Card>
       )}
 

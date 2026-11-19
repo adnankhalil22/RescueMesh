@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { describeError } from '../api/client';
 
 export default function Login() {
-  const { user, login } = useAuth();
+  const { user, login, notice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +58,11 @@ export default function Login() {
             <h2 className="text-2xl font-bold text-slate-900">Sign in</h2>
             <p className="mt-1 text-sm text-slate-500">Responder and administrator access</p>
           </div>
+          {notice && !error && (
+            <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {notice}
+            </div>
+          )}
           {error && (
             <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}

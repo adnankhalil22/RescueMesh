@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { createApp } from '../src/app';
 import { prisma } from '../src/db';
 import { meshTransport } from '../src/mesh/simulatedLoRaTransport';
+import { resetLoginLimiter } from '../src/middleware/loginLimiter';
 
 export const app = createApp();
 export { prisma, request };
@@ -22,6 +23,7 @@ export async function resetDb() {
     prisma.user.deleteMany(),
   ]);
   meshTransport.reset();
+  resetLoginLimiter();
   const hash = await bcrypt.hash('Password123', 4);
   for (const [email, role] of [
     ['admin@test.io', 'ADMIN'],

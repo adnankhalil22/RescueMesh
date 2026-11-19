@@ -13,6 +13,7 @@ export default function LiveMap() {
   const [showResolved, setShowResolved] = useState(false);
   const [showNodes, setShowNodes] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [fitSignal, setFitSignal] = useState(0);
   const { data, error, loading, reload, lastUpdated } = usePolling(async () => {
     const [emergencies, mesh] = await Promise.all([
       api<Emergency[]>('/emergencies'),
@@ -36,6 +37,9 @@ export default function LiveMap() {
         actions={
           <>
             <LastUpdated at={lastUpdated} />
+            <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setFitSignal((n) => n + 1)}>
+              Fit all markers
+            </button>
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} /> Show resolved/cancelled
             </label>
@@ -54,6 +58,7 @@ export default function LiveMap() {
             nodes={showNodes ? data?.mesh.nodes : []}
             links={showNodes ? data?.mesh.links : []}
             onSelect={(e) => setSelected(e.id)}
+            fitSignal={fitSignal}
             height="calc(100vh - 230px)"
           />
           <div className="flex flex-wrap gap-4 px-3 py-2 text-xs text-slate-600">
