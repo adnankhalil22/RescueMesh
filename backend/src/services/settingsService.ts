@@ -15,9 +15,10 @@ export type SystemSettings = z.infer<typeof settingsSchema>;
 export const DEFAULT_SETTINGS: SystemSettings = {
   organizationName: 'RescueMesh Emergency Operations Center',
   maxHops: 6,
-  mapCenterLat: 31.5204,
-  mapCenterLng: 74.3587,
-  mapZoom: 12,
+  // Beirut, Lebanon — demonstration area (see prisma/demoScenario.ts)
+  mapCenterLat: 33.884,
+  mapCenterLng: 35.528,
+  mapZoom: 13,
   autoRefreshSeconds: 5,
 };
 

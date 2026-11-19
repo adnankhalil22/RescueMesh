@@ -44,7 +44,8 @@ export default function EmergencyMap({
   showRanges?: boolean;
 }) {
   const { settings } = useAuth();
-  const center: [number, number] = [settings?.mapCenterLat ?? 31.52, settings?.mapCenterLng ?? 74.35];
+  // Fallback before settings load: Beirut demonstration area
+  const center: [number, number] = [settings?.mapCenterLat ?? 33.884, settings?.mapCenterLng ?? 35.528];
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const points: [number, number][] = [
     ...emergencies.map((e) => [e.latitude, e.longitude] as [number, number]),
@@ -53,7 +54,7 @@ export default function EmergencyMap({
 
   return (
     <div style={{ height }} className="overflow-hidden rounded-lg">
-      <MapContainer center={center} zoom={settings?.mapZoom ?? 12} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+      <MapContainer center={center} zoom={settings?.mapZoom ?? 13} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

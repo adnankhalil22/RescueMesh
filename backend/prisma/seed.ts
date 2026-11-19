@@ -1,11 +1,14 @@
 // Demonstration seed data. Re-running it wipes and recreates all data.
-// Locations are around Lahore, Pakistan (change mapCenter in Settings for another city).
+// Locations: Beirut, Lebanon — see prisma/demoScenario.ts for the scenario and mesh topology.
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { DEFAULT_SETTINGS } from '../src/services/settingsService';
 import { simulateFlood, type SimNode } from '../src/mesh/simulator';
 import type { MeshPacket } from '../src/mesh/packet';
+import { DEMO_AREA, DEMO_NODES } from './demoScenario';
+
+const box = DEMO_AREA.incidentBox;
 
 const prisma = new PrismaClient();
 
@@ -22,19 +25,9 @@ export const DEMO_USERS = [
   { email: 'usman@example.com', password: 'Victim@1234', name: 'Usman Tariq', role: 'VICTIM', phone: '+961 71 000 203', bloodGroup: 'A-' },
 ] as const;
 
-// Simulated ESP32 + LoRa nodes. RL-05 starts OFFLINE so EP-03 is cut off:
+// Simulated ESP32 + LoRa nodes (Beirut scenario). RL-05 starts OFFLINE so EP-03 is cut off:
 // switch it on in the dashboard to demonstrate store-and-forward delivery.
-const NODES = [
-  { id: 'GW-01', name: 'EOC Gateway', kind: 'GATEWAY', latitude: 31.56, longitude: 74.315, rangeKm: 3.0 },
-  { id: 'RL-01', name: 'Relay — Minar Park', kind: 'RELAY', latitude: 31.545, longitude: 74.335, rangeKm: 2.8 },
-  { id: 'RL-02', name: 'Relay — Water Tower', kind: 'RELAY', latitude: 31.53, longitude: 74.355, rangeKm: 2.8 },
-  { id: 'RL-03', name: 'Relay — Canal Bridge', kind: 'RELAY', latitude: 31.515, longitude: 74.375, rangeKm: 2.8 },
-  { id: 'RL-04', name: 'Relay — Hospital Roof', kind: 'RELAY', latitude: 31.535, longitude: 74.378, rangeKm: 2.8 },
-  { id: 'RL-05', name: 'Relay — School Mast', kind: 'RELAY', latitude: 31.51, longitude: 74.34, rangeKm: 2.8, online: false },
-  { id: 'EP-01', name: 'Field Node — Riverside', kind: 'ENDPOINT', latitude: 31.505, longitude: 74.395, rangeKm: 2.5 },
-  { id: 'EP-02', name: 'Field Node — North Colony', kind: 'ENDPOINT', latitude: 31.552, longitude: 74.39, rangeKm: 2.5 },
-  { id: 'EP-03', name: 'Field Node — Flooded Village', kind: 'ENDPOINT', latitude: 31.492, longitude: 74.33, rangeKm: 2.5 },
-];
+const NODES = DEMO_NODES;
 
 const SCENARIOS: Array<{ type: string; priority: string; description: string; people: number }> = [
   { type: 'TRAPPED', priority: 'CRITICAL', description: 'Family of 4 on rooftop, water at first-floor level', people: 4 },
@@ -119,8 +112,9 @@ async function main() {
         priority: s.priority,
         status,
         description: s.description,
-        latitude: 31.52 + (rand() - 0.5) * 0.12,
-        longitude: 74.35 + (rand() - 0.5) * 0.14,
+        // spread over the affected area (eastern Beirut / Metn, on land)
+        latitude: box.minLat + rand() * (box.maxLat - box.minLat),
+        longitude: box.minLng + rand() * (box.maxLng - box.minLng),
         accuracy: Math.round(5 + rand() * 30),
         peopleCount: s.people,
         channel,

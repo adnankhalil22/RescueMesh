@@ -76,7 +76,7 @@ test('victim: log in -> SOS with GPS -> appears on server/dashboard API -> respo
   const [onServer] = await findOnServer(responderToken, desc);
   expect(onServer).toBeTruthy();
   expect(onServer.channel).toBe('ONLINE');
-  expect(onServer.latitude).toBeCloseTo(31.5497, 4);
+  expect(onServer.latitude).toBeCloseTo(33.877, 4);
 
   // responder acts (as from the dashboard)
   await http(`/emergencies/${onServer.id}/assign`, { method: 'PATCH', token: responderToken, body: {} });
@@ -130,7 +130,7 @@ test('responder: incoming list -> accept -> in progress -> resolved from the mob
   const created = await http<{ id: string }>('/emergencies', {
     method: 'POST',
     token: victimToken,
-    body: { type: 'MEDICAL', priority: 'CRITICAL', description: desc, latitude: 31.53, longitude: 74.35 },
+    body: { type: 'MEDICAL', priority: 'CRITICAL', description: desc, latitude: 33.883, longitude: 35.54 },
   });
 
   await signIn('responder@rescuemesh.org', 'Responder@123');
@@ -178,7 +178,7 @@ test('every victim screen renders; registration creates a working account', asyn
   expect(await screen.findByText('No emergency requests yet.', {}, LONG)).toBeTruthy();
   await fireEvent.press(screen.getByText('My Location'));
   expect(await screen.findByRole('button', { name: 'Share my location' }, LONG)).toBeTruthy();
-  expect(await screen.findByText('31.54970, 74.34360', {}, LONG)).toBeTruthy();
+  expect(await screen.findByText('33.87700, 35.53700', {}, LONG)).toBeTruthy();
   await fireEvent.press(screen.getAllByText('Profile')[0]);
   expect(await screen.findByText(email, { exact: false }, LONG)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Settings' }));

@@ -52,7 +52,7 @@ Emergency object:
 ```json
 {
   "id": "SOS-3f2a...", "code": "A1B2C3D4", "type": "TRAPPED", "priority": "CRITICAL", "status": "PENDING",
-  "description": "Water rising", "latitude": 31.52, "longitude": 74.35, "accuracy": 12, "peopleCount": 4,
+  "description": "Water rising", "latitude": 33.877, "longitude": 35.556, "accuracy": 12, "peopleCount": 4,
   "channel": "OFFLINE_SYNC", "archived": false,
   "createdAt": "...", "receivedAt": "...", "updatedAt": "...", "acceptedAt": null, "resolvedAt": null,
   "reporter": { "id": "...", "name": "Ali Raza", "phone": "...", "email": "..." }, "reporterName": "Ali Raza",
@@ -65,7 +65,7 @@ Emergency object:
 ### `POST /emergencies`
 Direct online submission (the mobile app uses `/sync/messages` instead; both go through the same ingest pipeline).
 ```json
-{ "id": "optional-client-id", "type": "FIRE", "priority": "CRITICAL", "description": "...", "latitude": 31.5, "longitude": 74.3, "accuracy": 10, "peopleCount": 2 }
+{ "id": "optional-client-id", "type": "FIRE", "priority": "CRITICAL", "description": "...", "latitude": 33.883, "longitude": 35.54, "accuracy": 10, "peopleCount": 2 }
 ```
 `priority` defaults from the type (FIRE/TRAPPED/BUILDING_COLLAPSE → CRITICAL, MEDICAL/MISSING_PERSON → HIGH, OTHER → MEDIUM).
 → `201` created, or `200` if that `id` already exists.
@@ -92,7 +92,7 @@ Uploads up to 100 outbox messages. Each is processed independently and idempoten
   "messages": [
     {
       "messageId": "MSG-6d1c...", "sourceNodeId": "PHONE-3F9A1C22B0", "destinationNodeId": "SERVER",
-      "type": "SOS", "latitude": 31.5204, "longitude": 74.3587, "timestamp": 1794939000000,
+      "type": "SOS", "latitude": 33.8700, "longitude": 35.5730, "timestamp": 1794939000000,
       "priority": "CRITICAL", "hopCount": 0, "maxHops": 6,
       "payload": { "requestId": "SOS-9a2e...", "category": "TRAPPED", "description": "...", "peopleCount": 3, "accuracy": 8, "queuedOffline": true }
     }

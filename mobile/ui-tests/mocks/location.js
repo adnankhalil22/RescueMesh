@@ -1,9 +1,10 @@
-// expo-location test double with a controllable permission state and a fixed GPS position (Lahore).
+// expo-location test double with a controllable permission state and a fixed GPS position
+// (Sin el Fil, Beirut — inside the demonstration area).
 const GRANTED = { granted: true, canAskAgain: true, status: 'granted', expires: 'never' };
 let permission = GRANTED;
 let requested = 0;
 const position = () => ({
-  coords: { latitude: 31.5497, longitude: 74.3436, accuracy: 8, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+  coords: { latitude: 33.877, longitude: 35.537, accuracy: 8, altitude: null, altitudeAccuracy: null, heading: null, speed: null },
   timestamp: Date.now(),
 });
 module.exports = {

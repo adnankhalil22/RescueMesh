@@ -4,6 +4,9 @@
 **Scope:** mobile app, backend API, dashboard, Prisma schema, authentication/authorization, offline storage and sync,
 simulated LoRa, documentation.
 
+> **Latest status:** see [§10 Final pre-hardware verification](#10-final-pre-hardware-verification-19-november-2026).
+> Its test results replace those in §1 and §8.
+
 ## 1. Summary
 
 The project was already in a working state: all type checks, 31 unit tests, the builds and a live integration test
@@ -198,3 +201,113 @@ No part of RescueMesh transmits over LoRa radio. Everything shown as mesh networ
 counters, store-and-forward) is produced by a software simulator and is labelled "Simulated" in the dashboard. The
 code is structured so that a real ESP32 gateway can be connected through `SerialLoRaTransport`. This requires
 hardware, firmware and field testing that have not been done.
+
+---
+
+## 10. Final pre-hardware verification (19 November 2026)
+
+Baseline: commit `0667a53`. This pass made targeted changes only; no architecture or design changes.
+
+### 10.1 Changes made
+
+**Demonstration geography moved from Lahore, Pakistan to Beirut, Lebanon** (fictional flash-flood scenario along the
+Beirut River):
+
+| Item | Before | After |
+|---|---|---|
+| Default map centre / zoom | 31.5204, 74.3587 / 12 | **33.884, 35.528 / 13** (backend default settings, and the dashboard fallback before settings load) |
+| Gateway | GW-01 Lahore | **GW-01 EOC Gateway — Downtown Beirut** (33.896, 35.502) |
+| Relays | RL-01…RL-05 Lahore | **Ashrafieh, Beirut River Bridge, Sin el Fil, Bourj Hammoud, Furn el Chebbak** (RL-05 starts offline, as before) |
+| Endpoints | EP-01…EP-03 Lahore | **Dekwaneh, Jdeideh, Hazmieh** |
+| Seeded emergencies | random ±6 km around Lahore | spread over a fixed on-land area of eastern Beirut / Metn (33.862–33.898 N, 35.505–35.565 E) |
+
+- The topology is unchanged in shape: same links, same 4-hop routes, same relay triangle for duplicate suppression,
+  same offline relay for the store-and-forward demo. Radio ranges are unchanged (gateway 3.0 km, relays 2.8 km,
+  field nodes 2.5 km).
+- The scenario now lives in one module, `backend/prisma/demoScenario.ts`, and is verified by a new test file,
+  `backend/tests/scenario.test.ts` (7 tests).
+- Records created by the mobile integration and UI tests use Beirut coordinates too, so test runs never put markers
+  outside Lebanon on the dashboard.
+- Docs updated: `docs/LORA_INTEGRATION.md` (topology diagram drawn from the actual computed links) and the
+  `docs/API.md` examples.
+- New read-only pre-demo checks: `backend/scripts/verify-demo-data.ts` (consistency of paths, counters and
+  coordinates) and an extended `backend/scripts/check-topology.ts` (also shows routes with offline relays powered on).
+
+**Earlier in the same day (commit `0667a53`, recorded here for completeness):**
+- Mobile: safe-area spacing on the citizen Home and responder Incoming screens; plain back arrow on stacked screens;
+  the assigned responder always comes from the server, with "Not assigned" when none.
+- Terminology: Citizen / Responder / Administrator everywhere.
+- Demo data: fictional +961 contacts.
+- Communication monitoring: classified by channel.
+- Seeded mesh counters: produced by the simulator.
+
+### 10.2 Verification of the communication-monitoring changes
+
+Checked against the running API after `npm run seed`:
+
+| Requirement | Result |
+|---|---|
+| HTTP requests identified as live API communication | ✔ `HTTP_API`, nature `LIVE`, 10 SOS |
+| Offline-synchronised requests identified separately | ✔ `OFFLINE_SYNC`, nature `LIVE`, 4 SOS |
+| Simulated LoRa explicitly labelled simulated | ✔ `LORA_SIMULATED`, nature `SIMULATED`, 2 SOS; dashboard shows the "Simulated" tag and "no radio hardware" |
+| Physical LoRa shown as not connected | ✔ `LORA_PHYSICAL`, nature `NOT_CONNECTED`, `sosRequests: null` (not reported as 0); transport `hardwareConnected: false` |
+| Packet counters calculated by the simulator | ✔ `verify-demo-data.ts`: all 9 nodes' sent/received/dropped equal the simulator's counters for the seeded deliveries |
+| Seeded mesh paths consistent | ✔ both seeded mesh messages: stored path `EP-01 > RL-03 > RL-02 > RL-01 > GW-01`, 4 hops, equal to the simulator's route |
+| Offline node vs counters | ✔ RL-05 (offline) has 0/0/0 |
+
+No screen, API field or document reports a simulated transmission as a real radio transmission.
+
+### 10.3 Verification of the recent mobile improvements
+
+| Item | How verified | Result |
+|---|---|---|
+| Home safe-area spacing | Code: hero uses `paddingTop: insets.top + 16` from `useSafeAreaInsets()` | ✔ in code; **visual check on a phone still needed** |
+| Responder (Incoming) safe-area spacing | Same pattern in `IncomingScreen.tsx` | ✔ in code; **visual check on a phone still needed** |
+| Minimal back button | Code: stack `headerBackButtonDisplayMode: 'minimal'`; tab hosts titled "Home" / "Emergencies" | ✔ in code; **visual check on a phone still needed** (the native header is not drawn in Jest) |
+| Correct responder on the citizen's request screen | UI test 1: shows the backend-assigned "Ayesha Malik" and her phone `+961 70 000 101` | ✔ automated |
+| "Not assigned" when no responder | UI test 1: shown before acceptance; no responder phone row | ✔ automated |
+| Citizen / Responder / Administrator terminology | Code search: identical `ROLE_LABEL` in mobile and dashboard; no user-visible "victim" text left (only internal folder names and the API key `VICTIM`) | ✔ |
+
+### 10.4 Exact test results for this version
+
+Executed in this order. The backend was running (`tsx watch`, reloaded with these changes) against the freshly
+seeded database. The backend unit tests prepare their own separate database (`backend/prisma/test.db`).
+
+| Command | Exit code | Result |
+|---|---|---|
+| `npm run typecheck` | 0 | 0 TypeScript errors (backend, dashboard, mobile app, mobile UI tests) |
+| `npm test` | 0 | backend **37/37** (30 previous + 7 new scenario tests); mobile sync engine **8/8** |
+| `npm run build` | 0 | backend `tsc` ✔; dashboard Vite build ✔ |
+| `npm run test:integration` | 0 | **6/6** checks (offline queue → restart → sync → DUPLICATE → responder resolve) |
+| `npm run test:ui` | 0 | **6/6** tests, 2 suites |
+| `npx expo-doctor` | 0 | **20/20** checks passed |
+| `npx expo export -p android` | 0 | Hermes bundle built (2.7 MB) |
+| `npx tsx scripts/verify-demo-data.ts` | 0 | 13/13 consistency checks |
+
+The demo database was re-seeded after the tests, so no test records remain.
+
+### 10.5 Remaining limitations
+
+- **Physical ESP32 + LoRa communication is not implemented.** No radio hardware has been connected, programmed or
+  tested. Every mesh node, link, hop, packet counter and gateway delivery is produced by a software simulator and is
+  labelled as simulated. `SerialLoRaTransport` (backend) and `LoRaBridgeTransport` (mobile) are integration points
+  that refuse to send.
+- **Radio ranges are assumptions.** The simulated ranges (2.5–3.0 km) are plausible for urban LoRa but have not been
+  measured. Real range in Beirut's dense streets may be shorter and must be established by field tests before any
+  hardware claim.
+- **Coordinates are approximate.** They are neighbourhood centres chosen for a coherent, fictional scenario, not
+  surveyed installation sites. People's names are unchanged, fictional demo characters.
+- **Not seen on a device.** The safe-area spacing and back-arrow changes are verified in code and the screens are
+  driven in Jest, but the app was not run on a physical phone by the assistant. The dashboard layout was not
+  inspected in a browser by the assistant.
+- **Backend test fixtures** (`backend/tests/*`) still use arbitrary coordinates near 31.5 N, 74.3 E. They only exist in
+  the separate test database and never appear in the demonstration.
+- The other limitations in §4 and §6 still apply (SOS needs a location fix, polling instead of push, JWT in
+  localStorage, plain HTTP on the local network, no CI).
+
+### 10.6 Hardware confirmation
+
+**Physical ESP32/LoRa communication is not implemented in RescueMesh.** The system demonstrates the communication
+protocol (packet format, compact ≤ 222-byte encoding, flood routing, hop limit, duplicate suppression,
+store-and-forward) in software only. Moving to hardware requires ESP32 + LoRa modules, firmware, the serial gateway
+transport and field testing, as described in `docs/LORA_INTEGRATION.md`.
