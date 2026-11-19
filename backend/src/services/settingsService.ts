@@ -15,9 +15,10 @@ export type SystemSettings = z.infer<typeof settingsSchema>;
 export const DEFAULT_SETTINGS: SystemSettings = {
   organizationName: 'RescueMesh Emergency Operations Center',
   maxHops: 6,
-  // Beirut, Lebanon — demonstration area (see prisma/demoScenario.ts)
-  mapCenterLat: 33.884,
-  mapCenterLng: 35.528,
+  // Saida (Sidon), Lebanon — demonstration area; must equal DEMO_AREA.center in prisma/demoScenario.ts
+  // (checked by tests/scenario.test.ts)
+  mapCenterLat: 33.547,
+  mapCenterLng: 35.398,
   mapZoom: 13,
   autoRefreshSeconds: 5,
 };

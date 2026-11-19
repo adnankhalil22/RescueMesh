@@ -1,5 +1,6 @@
 // Demonstration seed data. Re-running it wipes and recreates all data.
-// Locations: Beirut, Lebanon — see prisma/demoScenario.ts for the scenario and mesh topology.
+// Locations: Saida (Sidon), Lebanon — see prisma/demoScenario.ts for the scenario and mesh topology.
+// Every coordinate written by this script comes from DEMO_AREA / DEMO_NODES (no hard-coded locations).
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
@@ -25,7 +26,7 @@ export const DEMO_USERS = [
   { email: 'usman@example.com', password: 'Victim@1234', name: 'Usman Tariq', role: 'VICTIM', phone: '+961 71 000 203', bloodGroup: 'A-' },
 ] as const;
 
-// Simulated ESP32 + LoRa nodes (Beirut scenario). RL-05 starts OFFLINE so EP-03 is cut off:
+// Simulated ESP32 + LoRa nodes (Saida scenario). RL-05 starts OFFLINE so EP-03 is cut off:
 // switch it on in the dashboard to demonstrate store-and-forward delivery.
 const NODES = DEMO_NODES;
 
@@ -112,7 +113,7 @@ async function main() {
         priority: s.priority,
         status,
         description: s.description,
-        // spread over the affected area (eastern Beirut / Metn, on land)
+        // spread over the affected area (Saida and its eastern districts, on land)
         latitude: box.minLat + rand() * (box.maxLat - box.minLat),
         longitude: box.minLng + rand() * (box.maxLng - box.minLng),
         accuracy: Math.round(5 + rand() * 30),

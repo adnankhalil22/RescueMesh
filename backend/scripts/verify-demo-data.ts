@@ -1,13 +1,14 @@
 // Read-only consistency check of the demonstration database (run after `npm run seed`):
 //  - every simulated-LoRa message's stored path/hop count equals what the simulator computes
 //  - every node's packet counters equal the sum of the simulator's counters for those deliveries
-//  - all SOS coordinates lie in the Beirut demonstration area; all nodes are flagged simulated
+//  - all SOS coordinates lie in the demonstration area (DEMO_AREA); all nodes are flagged simulated
+//  - the map settings stored in the database equal the scenario's map centre and zoom
 // Usage: npx tsx scripts/verify-demo-data.ts   (exit code 1 on any mismatch)
 import { PrismaClient } from '@prisma/client';
 import { simulateFlood, type SimNode } from '../src/mesh/simulator';
 import type { MeshPacket } from '../src/mesh/packet';
 import { DEMO_AREA } from '../prisma/demoScenario';
-import { DEFAULT_SETTINGS } from '../src/services/settingsService';
+import { DEFAULT_SETTINGS, getSettings } from '../src/services/settingsService';
 
 const prisma = new PrismaClient();
 let failures = 0;
@@ -47,7 +48,18 @@ async function main() {
   const sos = await prisma.emergencyRequest.findMany({ select: { latitude: true, longitude: true } });
   const b = DEMO_AREA.incidentBox;
   const inArea = sos.filter((s) => s.latitude >= b.minLat && s.latitude <= b.maxLat && s.longitude >= b.minLng && s.longitude <= b.maxLng).length;
-  check(inArea === sos.length, `${inArea}/${sos.length} SOS coordinates inside the Beirut demonstration area`);
+  check(inArea === sos.length, `${inArea}/${sos.length} SOS coordinates inside the ${DEMO_AREA.name} demonstration area`);
+
+  const settings = await getSettings();
+  check(
+    settings.mapCenterLat === DEMO_AREA.center.latitude && settings.mapCenterLng === DEMO_AREA.center.longitude && settings.mapZoom === DEMO_AREA.zoom,
+    `stored map settings ${settings.mapCenterLat}, ${settings.mapCenterLng} zoom ${settings.mapZoom} = scenario centre ${DEMO_AREA.center.latitude}, ${DEMO_AREA.center.longitude} zoom ${DEMO_AREA.zoom}`,
+  );
+  const b2 = { minLat: Math.min(...rows.map((n) => n.latitude)), maxLat: Math.max(...rows.map((n) => n.latitude)) };
+  check(
+    settings.mapCenterLat >= b2.minLat && settings.mapCenterLat <= b2.maxLat,
+    `map centre latitude lies within the node network (${b2.minLat}–${b2.maxLat})`,
+  );
 
   console.log(failures ? `\n${failures} problem(s) found.` : '\nDemo data is consistent.');
   process.exitCode = failures ? 1 : 0;

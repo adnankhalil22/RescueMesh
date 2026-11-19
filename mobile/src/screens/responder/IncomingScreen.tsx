@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import { api, describeError, isNetworkError } from '../../services/api';
@@ -25,7 +24,6 @@ export default function IncomingScreen({ navigation }: ResponderTabScreen<'Incom
   const [filter, setFilter] = useState<Filter>('active');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const insets = useSafeAreaInsets(); // no header on this screen: clear the status bar / notch
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -69,16 +67,20 @@ export default function IncomingScreen({ navigation }: ResponderTabScreen<'Incom
   const pendingCount = items.filter((e) => e.status === 'PENDING').length;
 
   return (
-    <Screen edges={[]} onRefresh={load} refreshing={refreshing}>
-      <View style={[st.hero, { paddingTop: insets.top + 16 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={st.heroTitle}>Incoming emergencies</Text>
-            <Text style={st.heroSub}>
+    <Screen edges={[]} onRefresh={load} refreshing={refreshing} statusBarColor={colors.navy}>
+      <View style={st.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={st.heroTitle} numberOfLines={1}>
+              Incoming emergencies
+            </Text>
+            <Text style={st.heroSub} numberOfLines={2}>
               {pendingCount} waiting for a responder · {user?.organization ?? user?.name}
             </Text>
           </View>
-          <ConnectionPill />
+          <View style={{ flexShrink: 0, paddingTop: 2 }}>
+            <ConnectionPill />
+          </View>
         </View>
         <View style={st.filters}>
           {(['active', 'mine', 'all'] as Filter[]).map((f) => (

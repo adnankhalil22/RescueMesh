@@ -1,7 +1,20 @@
 # Demonstration Guide
 
 Prepared for a live FYP demonstration (≈ 10 minutes). Reset the data first so it looks fresh:
-`npm --prefix backend run db:seed`.
+`npm run seed`. To confirm the data is consistent: `npx tsx backend/scripts/verify-demo-data.ts`.
+
+**Scenario (fictional): Saida (Sidon), Lebanon.** A flash flood along the Sainiq River, south-east of the city.
+The dashboard map opens on Saida (33.547 N, 35.398 E, zoom 13). Seeded SOS requests are spread over Saida and its
+eastern districts. The simulated LoRa network has these nodes (all simulated, no radio hardware):
+
+| Node | Place | Role |
+|---|---|---|
+| GW-01 | Saida Old City | Gateway at the emergency operations centre |
+| RL-01 · RL-02 · RL-03 · RL-04 | Haret Saida · Miyeh w Miyeh · Darb es-Sim · Majdelyoun | Relays (RL-02/03/04 form a triangle) |
+| RL-05 | Sainiq River Bridge | Relay, starts **powered off** |
+| EP-01 · EP-02 · EP-03 | Maghdouché · Salhieh · Ghazieh | Field nodes |
+
+All demo people and phone numbers (+961 … 000 …) are fictional.
 
 ## Setup (before the audience arrives)
 
@@ -29,7 +42,7 @@ Either in the dashboard (Emergencies → click the row → *Accept & assign to m
 or on a second phone signed in as `responder@rescuemesh.org` / `Responder@123` (Incoming → request → Accept → Mark In
 Progress → Mark Resolved).
 
-On the victim's phone, **My Requests** (pull to refresh) or the request screen shows *Responder assigned* →
+On the citizen's phone, **My Requests** (pull to refresh) or the request screen shows *Responder assigned* →
 *Rescue in progress* → *Resolved* with the responder's name and timeline.
 
 ## 3. Offline SOS and automatic synchronisation
@@ -49,14 +62,19 @@ On the victim's phone, **My Requests** (pull to refresh) or the request screen s
 Dashboard → **Communication**:
 
 1. Point out the banner: *Simulation mode … Hardware connected: no*.
-2. *From node* **EP-01** → **Transmit SOS** → trace shows `ORIGIN → TX/RX` hop by hop, **2 duplicates dropped** in
-   the relay triangle, **Delivered to gateway after 4 hops**, packet size within one LoRa frame, and *Server ingest:
-   ACCEPTED*. The SOS appears in Emergencies with channel *LoRa mesh (simulated)*.
-3. **Re-send same message** → `DUPLICATE_DROPPED` at the origin; nothing new is stored.
-4. *From node* **EP-03** → Transmit → *No route — held for retry* (relay RL-05 is powered off); *Pending packets* = 1.
-5. Node table → RL-05 **Power on** → message *"Store-and-forward retried 1 held packet(s): 1 delivered"*.
-6. Power off **RL-01** and transmit from EP-01 → no route to the gateway (mesh partition); power it on again → delivered.
-7. Settings → *LoRa max hops* = 3 → transmit from EP-01 → `HOP_LIMIT` at RL-01 (the gateway is 4 hops away), so the
+2. Point out the **Communication channels** table: HTTP API and Offline sync are *Live*, the LoRa mesh is
+   *Simulated*, and physical LoRa (ESP32) is *Not connected*.
+3. *From node* **EP-01 (Maghdouché)** → **Transmit SOS** → the trace shows `ORIGIN → TX/RX` hop by hop
+   (Maghdouché → Darb es-Sim → Miyeh w Miyeh → Haret Saida → Old City gateway), **2 duplicates dropped** in the relay
+   triangle, **Delivered to simulated gateway** after 4 hops, the packet size within one LoRa frame, and *Server
+   ingest: ACCEPTED*. The SOS appears in Emergencies with channel *LoRa mesh (simulated)*.
+4. **Re-send same message** → `DUPLICATE_DROPPED` at the origin; nothing new is stored.
+5. *From node* **EP-03 (Ghazieh)** → Transmit → *No route — held for retry* (relay RL-05 is powered off);
+   *Held packets* = 1.
+6. Node table → RL-05 **Power on** → message *"Store-and-forward retried 1 held packet(s): 1 delivered"* (3 hops:
+   Ghazieh → Sainiq River Bridge → Haret Saida → gateway).
+7. Power off **RL-01** and transmit from EP-01 → no route to the gateway (mesh partition); power it on again → delivered.
+8. Settings → *LoRa max hops* = 3 → transmit from EP-01 → `HOP_LIMIT` at RL-01 (the gateway is 4 hops away), so the
    packet is not delivered and is kept as pending. Set max hops back to 6: the held packet is retried with the new
    limit and delivered automatically.
 

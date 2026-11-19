@@ -60,6 +60,9 @@ afterEach(() => {
 test('victim: log in -> SOS with GPS -> appears on server/dashboard API -> responder update visible on phone', async () => {
   await signIn('victim@rescuemesh.org', 'Victim@1234');
   expect(await screen.findByText('Hello, Ali', {}, LONG)).toBeTruthy();
+  // header layout: fixed status-bar backdrop outside the scroll view; greeting limited to one line
+  expect(screen.getByTestId('status-bar-backdrop')).toBeTruthy();
+  expect(screen.getByText('Hello, Ali').props.numberOfLines).toBe(1);
 
   await fireEvent.press(screen.getByLabelText('SOS. Request emergency help'));
   expect(await screen.findByText('Location found', {}, LONG)).toBeTruthy(); // GPS permission granted + fix
@@ -76,7 +79,7 @@ test('victim: log in -> SOS with GPS -> appears on server/dashboard API -> respo
   const [onServer] = await findOnServer(responderToken, desc);
   expect(onServer).toBeTruthy();
   expect(onServer.channel).toBe('ONLINE');
-  expect(onServer.latitude).toBeCloseTo(33.877, 4);
+  expect(onServer.latitude).toBeCloseTo(33.556, 4);
 
   // responder acts (as from the dashboard)
   await http(`/emergencies/${onServer.id}/assign`, { method: 'PATCH', token: responderToken, body: {} });
@@ -130,11 +133,12 @@ test('responder: incoming list -> accept -> in progress -> resolved from the mob
   const created = await http<{ id: string }>('/emergencies', {
     method: 'POST',
     token: victimToken,
-    body: { type: 'MEDICAL', priority: 'CRITICAL', description: desc, latitude: 33.883, longitude: 35.54 },
+    body: { type: 'MEDICAL', priority: 'CRITICAL', description: desc, latitude: 33.5535, longitude: 35.4035 },
   });
 
   await signIn('responder@rescuemesh.org', 'Responder@123');
   expect(await screen.findByText('Incoming emergencies', {}, LONG)).toBeTruthy();
+  expect(screen.getByTestId('status-bar-backdrop')).toBeTruthy();
   await fireEvent.press(await screen.findByText(desc, {}, LONG));
 
   await fireEvent.press(await screen.findByRole('button', { name: 'Accept emergency' }, LONG));
@@ -178,7 +182,7 @@ test('every victim screen renders; registration creates a working account', asyn
   expect(await screen.findByText('No emergency requests yet.', {}, LONG)).toBeTruthy();
   await fireEvent.press(screen.getByText('My Location'));
   expect(await screen.findByRole('button', { name: 'Share my location' }, LONG)).toBeTruthy();
-  expect(await screen.findByText('33.87700, 35.53700', {}, LONG)).toBeTruthy();
+  expect(await screen.findByText('33.55600, 35.39200', {}, LONG)).toBeTruthy();
   await fireEvent.press(screen.getAllByText('Profile')[0]);
   expect(await screen.findByText(email, { exact: false }, LONG)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Settings' }));

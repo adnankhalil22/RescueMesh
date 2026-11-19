@@ -49,34 +49,36 @@ the packet fits in 222 bytes (no fragmentation is implemented).
 4. If no node reaches the destination, the packet is held (`PendingPacket`) and re-flooded when topology changes.
 5. A delivered packet goes to the same ingest pipeline as HTTP sync, so a message arriving by both paths is stored once.
 
-## Demo topology (seed data) — Beirut, Lebanon
+## Demo topology (seed data) — Saida (Sidon), Lebanon
 
-Fictional scenario: a flash flood along the Beirut River. The operations-centre gateway is downtown; relays step east
-across Ashrafieh and the river; field nodes are in the affected eastern districts. Defined in
+Fictional scenario: a flash flood along the Sainiq River, south-east of Saida. The operations-centre gateway is in
+Saida's old city; relays step east and south-east into Haret Saida, Miyeh w Miyeh, Darb es-Sim and Majdelyoun; field
+nodes are in the affected outlying areas. All points are inland (the sea is to the west). Defined in
 `backend/prisma/demoScenario.ts` and verified by `backend/tests/scenario.test.ts`. All nodes are **simulated**.
 
 ```mermaid
 flowchart LR
-  EP01[EP-01 Dekwaneh] --- RL03[RL-03 Sin el Fil]
-  EP02[EP-02 Jdeideh] --- RL04[RL-04 Bourj Hammoud]
-  RL03 --- RL02[RL-02 Beirut River Bridge]
+  EP01[EP-01 Maghdouché] --- RL03[RL-03 Darb es-Sim]
+  EP02[EP-02 Salhieh] --- RL04[RL-04 Majdelyoun]
+  RL03 --- RL02[RL-02 Miyeh w Miyeh]
   RL03 --- RL04
   RL04 --- RL02
-  RL02 --- RL01[RL-01 Ashrafieh]
-  RL01 --- GW[GW-01 EOC Gateway — Downtown]
-  RL05[RL-05 Furn el Chebbak — starts OFFLINE] -.- RL01
+  RL02 --- RL01[RL-01 Haret Saida]
+  RL01 --- GW[GW-01 EOC Gateway — Saida Old City]
+  RL05[RL-05 Sainiq River Bridge — starts OFFLINE] -.- RL01
   RL05 -.- RL02
-  RL05 -.- RL03
-  RL05 -.- EP03[EP-03 Hazmieh]
+  RL05 -.- EP03[EP-03 Ghazieh]
 ```
 
 Dotted links exist only while RL-05 is powered on.
 
 - EP-01 → GW-01: 4 hops (EP-01 > RL-03 > RL-02 > RL-01 > GW-01), 2 duplicates dropped in the RL-02/RL-03/RL-04 triangle.
-- EP-02 → GW-01: 4 hops via RL-04.
+- EP-02 → GW-01: 4 hops via RL-04 (Majdelyoun).
 - EP-03 has no route until RL-05 is powered on in the dashboard; its packet is then delivered in 3 hops (EP-03 > RL-05 > RL-01 > GW-01).
 - No field node can reach the gateway directly, so every delivery is multi-hop.
-- Default map centre: 33.884 N, 35.528 E, zoom 13.
+- Default map centre: 33.547 N, 35.398 E, zoom 13 (the centre of the node network).
+- Coordinates are approximate positions chosen for a coherent scenario, not surveyed sites. The radio ranges
+  (2.5–3.0 km) are assumptions, not measurements.
 
 Print the live topology at any time: `npx tsx backend/scripts/check-topology.ts` (read-only).
 

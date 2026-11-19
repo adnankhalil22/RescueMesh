@@ -6,12 +6,16 @@ _Last updated: 2026-11-19_
 Working end-to-end FYP system: Expo mobile app (victim + responder), React dashboard, Express/Prisma backend,
 offline-first sync, simulated LoRa mesh, docs. On GitHub: https://github.com/adnankhalil22/RescueMesh
 
+## 2026-11-19 — Lebanon localisation: Saida (AUDIT_REPORT.md §11)
+- Demonstration city confirmed with the owner: **Saida (Sidon), Lebanon** (fictional Sainiq River flood).
+  Scenario in `backend/prisma/demoScenario.ts`, verified by `backend/tests/scenario.test.ts` (9 tests);
+  map centre 33.547, 35.398, zoom 13. Replaces the short-lived Beirut scenario (§10) and the original Lahore data.
+- Home + responder header: fixed status-bar backdrop (`Screen statusBarColor`), one-line greeting.
+- Executed and passing: typecheck, backend 39/39, mobile 8/8, build, integration 6/6, UI 6/6, expo-doctor 20/20,
+  Android export, verify-demo-data 15/15.
+
 ## 2026-11-19 — final pre-hardware pass (AUDIT_REPORT.md §10)
-- Demo moved to **Beirut, Lebanon** (flood along the Beirut River). Scenario in `backend/prisma/demoScenario.ts`,
-  verified by `backend/tests/scenario.test.ts`; map centre 33.884, 35.528, zoom 13.
-- Pre-demo checks: `npx tsx backend/scripts/verify-demo-data.ts`, `npx tsx backend/scripts/check-topology.ts`.
-- All required checks executed and passing: typecheck, backend 37/37, mobile 8/8, build, integration 6/6, UI 6/6,
-  expo-doctor 20/20, Android export.
+- Channel/counter verification, demo-data check scripts (`verify-demo-data.ts`, `check-topology.ts`).
 
 ## 2026-11-19 — technical audit
 See **AUDIT_REPORT.md**. 11 defects found and fixed, each with a regression test:
@@ -24,8 +28,8 @@ See **AUDIT_REPORT.md**. 11 defects found and fixed, each with a regression test
 - New mobile UI test suite (`mobile/ui-tests`, Jest + RN Testing Library) driving the real screens against the live API.
 
 ## Verified (2026-11-19, by command)
-typecheck (all) ✔ · backend tests 37/37 ✔ · mobile unit 8/8 ✔ · mobile UI 6/6 ✔ · integration 6/6 ✔ ·
-builds ✔ · expo-doctor 20/20 ✔ · Android bundle ✔ · demo-data consistency 13/13 ✔
+typecheck (all) ✔ · backend tests 39/39 ✔ · mobile unit 8/8 ✔ · mobile UI 6/6 ✔ · integration 6/6 ✔ ·
+builds ✔ · expo-doctor 20/20 ✔ · Android bundle ✔ · demo-data consistency 15/15 ✔
 
 ## Not verified by the assistant
 - App on a physical phone (UI tests use simulated GPS/network/SQLite bridge).

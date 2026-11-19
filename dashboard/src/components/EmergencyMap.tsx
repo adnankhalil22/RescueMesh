@@ -44,8 +44,8 @@ export default function EmergencyMap({
   showRanges?: boolean;
 }) {
   const { settings } = useAuth();
-  // Fallback before settings load: Beirut demonstration area
-  const center: [number, number] = [settings?.mapCenterLat ?? 33.884, settings?.mapCenterLng ?? 35.528];
+  // Fallback before settings load: Saida (Sidon) demonstration area — same as the backend default settings
+  const center: [number, number] = [settings?.mapCenterLat ?? 33.547, settings?.mapCenterLng ?? 35.398];
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const points: [number, number][] = [
     ...emergencies.map((e) => [e.latitude, e.longitude] as [number, number]),

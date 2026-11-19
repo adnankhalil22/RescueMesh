@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import { listRequests } from '../../storage/database';
@@ -25,7 +24,6 @@ export default function HomeScreen({ navigation }: VictimTabScreen<'Home'>) {
   const { link, counts, syncNow, syncing, revision, lastSync } = useSync();
   const [recent, setRecent] = useState<LocalRequest[]>([]);
   const [gps, setGps] = useState<GpsState>('unknown');
-  const insets = useSafeAreaInsets(); // this screen has no header, so clear the status bar / notch ourselves
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -46,14 +44,20 @@ export default function HomeScreen({ navigation }: VictimTabScreen<'Home'>) {
   const linkColor = { online: colors.green, unreachable: colors.amber, offline: colors.red, checking: colors.muted }[link];
 
   return (
-    <Screen edges={[]} onRefresh={load} refreshing={false}>
-      <View style={[st.hero, { paddingTop: insets.top + 16 }]}>
+    <Screen edges={[]} onRefresh={load} refreshing={false} statusBarColor={colors.navy}>
+      <View style={st.hero}>
         <View style={st.heroTop}>
-          <View style={{ flex: 1 }}>
-            <Text style={st.hello}>Hello, {user?.name.split(' ')[0]}</Text>
-            <Text style={st.helloSub}>Press SOS if you need emergency help</Text>
+          <View style={st.greeting}>
+            <Text style={st.hello} numberOfLines={1}>
+              Hello, {user?.name.split(' ')[0]}
+            </Text>
+            <Text style={st.helloSub} numberOfLines={2}>
+              Press SOS if you need emergency help
+            </Text>
           </View>
-          <ConnectionPill />
+          <View style={st.pillWrap}>
+            <ConnectionPill />
+          </View>
         </View>
 
         <Pressable
@@ -137,7 +141,10 @@ function StatusTile({ icon, label, value, color }: { icon: IconName; label: stri
 
 const st = StyleSheet.create({
   hero: { backgroundColor: colors.navy, marginHorizontal: -16, marginTop: -16, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, marginBottom: 16 },
-  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  // greeting may shrink/ellipsize; the connection pill keeps its natural size and never overlaps it
+  greeting: { flex: 1, minWidth: 0 },
+  pillWrap: { flexShrink: 0, paddingTop: 2 },
   hello: { color: colors.white, fontSize: 22, fontWeight: '800' },
   helloSub: { color: '#94a3b8', marginTop: 2 },
   sosOuter: { alignSelf: 'center', marginTop: 24, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(220,38,38,0.15)', alignItems: 'center', justifyContent: 'center' },

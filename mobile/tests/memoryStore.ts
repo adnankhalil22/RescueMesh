@@ -62,8 +62,8 @@ export function makeSos(overrides: Partial<MeshPacket> = {}): MeshPacket {
     sourceNodeId: 'PHONE-TEST',
     destinationNodeId: 'SERVER',
     type: 'SOS',
-    latitude: 33.879, // Beirut demonstration area (records created by the integration test show up on the dashboard map)
-    longitude: 35.545,
+    latitude: 33.55, // Saida demonstration area (records created by the integration test show up on the dashboard map)
+    longitude: 35.4,
     timestamp: Date.now(),
     priority: 'HIGH',
     hopCount: 0,

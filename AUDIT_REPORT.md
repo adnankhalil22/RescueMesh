@@ -4,8 +4,9 @@
 **Scope:** mobile app, backend API, dashboard, Prisma schema, authentication/authorization, offline storage and sync,
 simulated LoRa, documentation.
 
-> **Latest status:** see [§10 Final pre-hardware verification](#10-final-pre-hardware-verification-19-november-2026).
-> Its test results replace those in §1 and §8.
+> **Latest status:** see [§11 Lebanon localisation — Saida](#11-lebanon-localisation--saida-sidon-19-november-2026).
+> Its test results replace those in §1, §8 and §10. The demonstration city is now **Saida (Sidon), Lebanon**;
+> the Beirut scenario described in §10 was replaced.
 
 ## 1. Summary
 
@@ -206,6 +207,9 @@ hardware, firmware and field testing that have not been done.
 
 ## 10. Final pre-hardware verification (19 November 2026)
 
+> Superseded in part by §11: the demonstration city changed from Beirut to **Saida**. The channel and counter
+> verification below still applies and was repeated for Saida in §11.
+
 Baseline: commit `0667a53`. This pass made targeted changes only; no architecture or design changes.
 
 ### 10.1 Changes made
@@ -311,3 +315,110 @@ The demo database was re-seeded after the tests, so no test records remain.
 protocol (packet format, compact ≤ 222-byte encoding, flood routing, hop limit, duplicate suppression,
 store-and-forward) in software only. Moving to hardware requires ESP32 + LoRa modules, firmware, the serial gateway
 transport and field testing, as described in `docs/LORA_INTEGRATION.md`.
+
+---
+
+## 11. Lebanon localisation — Saida (Sidon) (19 November 2026)
+
+Baseline: commit `543e9e2` (Beirut scenario). The demonstration city was confirmed with the project owner as
+**Saida (Sidon), Lebanon**. Targeted changes only; no architecture or design changes.
+
+### 11.1 Changes made
+
+**Scenario (fictional): a flash flood along the Sainiq River, south-east of Saida.** All points are inland; the sea
+lies to the west.
+
+| Node | Place | Coordinates | Range |
+|---|---|---|---|
+| GW-01 | EOC Gateway — Saida Old City | 33.5660, 35.3735 | 3.0 km |
+| RL-01 | Relay — Haret Saida | 33.5575, 35.3840 | 2.8 km |
+| RL-02 | Relay — Miyeh w Miyeh | 33.5535, 35.4035 | 2.8 km |
+| RL-03 | Relay — Darb es-Sim | 33.5420, 35.4120 | 2.8 km |
+| RL-04 | Relay — Majdelyoun | 33.5590, 35.4170 | 2.8 km |
+| RL-05 | Relay — Sainiq River Bridge (starts offline) | 33.5400, 35.3780 | 2.8 km |
+| EP-01 | Field Node — Maghdouché | 33.5270, 35.4045 | 2.5 km |
+| EP-02 | Field Node — Salhieh | 33.5620, 35.4330 | 2.5 km |
+| EP-03 | Field Node — Ghazieh | 33.5240, 35.3680 | 2.5 km |
+
+- **Map:** the default centre is **33.547, 35.398** (the centre of the node network) at zoom **13**. This is set in
+  the backend default settings, the dashboard fallback, and `DEMO_AREA` in `backend/prisma/demoScenario.ts`; a test
+  enforces that all three agree.
+- **Seeded emergencies** are spread over the on-land area 33.530–33.565 N, 35.380–35.430 E (Saida and its eastern
+  districts).
+- **Topology and ranges are unchanged.** The links are the same as before (verified link-for-link), the routes are
+  multi-hop, the relay triangle still suppresses duplicates, and RL-05 still demonstrates store-and-forward.
+- **Seeding cannot restore Lahore or Beirut.** `seed.ts` writes coordinates only from `DEMO_AREA` / `DEMO_NODES`, and
+  `tests/scenario.test.ts` fails if any scenario point or the map centre is near Lahore or Beirut.
+- **Phone numbers:** unchanged fictional Lebanese demo numbers (`+961 70 000 1xx` / `+961 71 000 2xx`).
+- **Home header (mobile).** On a screen without a navigation header the status bar is transparent, so scrolled
+  content (the greeting, then light cards) slid under the clock and battery icons. A long greeting could also squeeze
+  the connection pill. Fixes:
+  - a fixed navy strip behind the status bar that sits outside the scroll view (new optional `statusBarColor` on the
+    shared `Screen` component);
+  - the greeting is limited to one line and the subtitle to two;
+  - the connection pill keeps its natural size.
+  
+  The same fix is applied to the responder's Incoming screen. The design is unchanged.
+- **Mobile test data** (GPS mock, test SOS records) moved to Saida, so test records also stay in the demonstration
+  area.
+- **`verify-demo-data.ts`** now also checks that the map settings stored in the database equal the scenario centre
+  and zoom.
+- **Docs:** `docs/DEMO_GUIDE.md` has a scenario section with a node/place table, Saida route descriptions, and labels
+  matching the current dashboard ("Held packets", "Delivered to simulated gateway"). `docs/LORA_INTEGRATION.md` has a
+  Saida topology diagram drawn from the computed links, and `docs/API.md` has Saida example coordinates.
+
+### 11.2 Verification
+
+**Location and settings**, checked against the running API after `npm run seed`:
+
+| Check | Result |
+|---|---|
+| All 9 nodes inside Saida (33.50–33.60 N, 35.36–35.45 E) | ✔ (`scenario.test.ts`, live `/comm/nodes`) |
+| All 16 seeded SOS inside the Saida incident area | ✔ 16/16 (`verify-demo-data.ts`) |
+| Map settings stored in the database = scenario centre and zoom | ✔ 33.547, 35.398, zoom 13 (`verify-demo-data.ts`, live `/settings`) |
+| Default settings = `DEMO_AREA` | ✔ (`scenario.test.ts`) |
+| No Lahore / Beirut points | ✔ (`scenario.test.ts`; code search: none outside the audit history, `legacy/`, and backend test fixtures) |
+| Designed link set; EP-01 and EP-02 4-hop routes; EP-03 held until RL-05 is on, then 3 hops | ✔ (`scenario.test.ts`, `check-topology.ts`) |
+| Seeded mesh paths and node counters equal the simulator's | ✔ 13 checks (`verify-demo-data.ts`) |
+
+**Simulated LoRa labels still visible:**
+- the "Simulation mode … Hardware connected: no" banner;
+- the "LoRa mesh simulator — no radio hardware" heading;
+- `SimulatedTag` on the Communication (4), Overview (2) and Live Map (2) pages;
+- "Simulated LoRa" in the message log, "Delivered to simulated gateway" in traces, and "LoRa mesh (simulated)" as
+  the channel label;
+- live `/comm/status`: `LORA_SIMULATED` = SIMULATED, `LORA_PHYSICAL` = NOT_CONNECTED (`null`), and transport
+  `hardwareConnected: false`.
+
+**Mobile header:** UI test 1 asserts the fixed status-bar backdrop and the one-line greeting on Home; UI test 3
+asserts the backdrop on the responder screen. The visual result on a physical phone was not seen by the assistant.
+
+### 11.3 Test results (all executed on this version)
+
+| Command | Exit | Result |
+|---|---|---|
+| `npm run typecheck` | 0 | 0 errors (backend, dashboard, mobile app, mobile UI tests) |
+| `npm test` | 0 | backend **39/39** (incl. 9 Saida scenario tests), mobile sync engine **8/8** |
+| `npm run build` | 0 | backend `tsc` → `dist/server.js` ✔; dashboard Vite build ✔ |
+| `npm run test:integration` | 0 | **6/6** (API running, freshly seeded) |
+| `npm run test:ui` | 0 | **6/6** |
+| `npx expo-doctor` | 0 | **20/20** |
+| `npx expo export -p android` | 0 | Hermes bundle built (2.7 MB) |
+| `npx tsx scripts/verify-demo-data.ts` | 0 | **15/15** checks |
+
+The database was re-seeded after the tests, so no test records remain.
+
+### 11.4 Remaining problems and limitations
+
+- **Physical ESP32/LoRa communication is not implemented.** No radio hardware has been connected or tested. All mesh
+  nodes, links, hops, counters and gateway deliveries are simulated and labelled as such.
+- **Coordinates are approximate** neighbourhood/village positions chosen for a coherent scenario, not surveyed
+  sites. A local reviewer may want to fine-tune them. Some inter-node distances are within 0.2–0.3 km of a radio
+  range limit; the scenario test fails if a change alters the link set.
+- **Radio ranges (2.5–3.0 km) are assumptions**, not field measurements.
+- **Demo people's names** (e.g. Ali Raza, Ayesha Malik) were not changed by this pass. They are fictional characters,
+  but they are not Lebanese names.
+- **Not checked on a device:** the header fix is verified in code and in Jest, but not visually on a physical phone.
+  The dashboard was not visually inspected in a browser by the assistant.
+- **Backend test fixtures** still use arbitrary non-Lebanese coordinates; they exist only in the separate test
+  database.

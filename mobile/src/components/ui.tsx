@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle, type StyleProp, RefreshControl } from 'react-native';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, deliveryColor, priorityColor, radius, statusColor } from '../theme';
 import { DELIVERY_LABEL, PRIORITY_LABEL, STATUS_LABEL } from '../constants';
@@ -16,6 +16,7 @@ export function Screen({
   refreshing,
   onRefresh,
   contentStyle,
+  statusBarColor,
 }: {
   children: ReactNode;
   scroll?: boolean;
@@ -23,9 +24,16 @@ export function Screen({
   refreshing?: boolean;
   onRefresh?: () => void;
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * For screens without a navigation header: paints a fixed (non-scrolling) strip behind the
+   * status bar, so scrolled content never slides under the clock/battery icons.
+   */
+  statusBarColor?: string;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView style={s.screen} edges={edges}>
+      {statusBarColor && <View testID="status-bar-backdrop" style={{ height: insets.top, backgroundColor: statusBarColor }} />}
       {scroll ? (
         <ScrollView
           contentContainerStyle={[s.content, contentStyle]}
